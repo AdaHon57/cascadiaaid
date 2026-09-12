@@ -1,6 +1,6 @@
 # Cascadia Aid
 
-A Next.js and TypeScript foundation for a hackathon project. It includes a recovery-node model, static demonstration nodes, and an explainable priority engine alongside an application shell and placeholder routes.
+A Next.js and TypeScript foundation for a hackathon project. It includes a recovery-node model, static demonstration nodes, a status engine, and an explainable priority engine alongside an application shell and placeholder routes.
 
 ## Requirements
 
@@ -34,10 +34,12 @@ Run `npm run format` to apply formatting.
 - `components/layout/` — shared application chrome
 - `components/ui/` — reusable, accessible interface primitives
 - `types/` — shared domain shapes, including recovery nodes and priority inputs/results
-- `lib/` — priority calculation and ranking
-- `data/` — static demonstration recovery nodes
-- `tests/` — priority engine checks
+- `lib/` — recovery status calculation plus priority calculation and ranking
+- `data/` — separate workflow definitions, illustrative edges, sample case facts, and calculated statuses
+- `tests/` — status and priority engine checks
 - `docs/priority-engine.md` — [scoring explanation and usage](docs/priority-engine.md)
+- `docs/recovery-graph.md` — [recovery definitions, edges, and runtime state](docs/recovery-graph.md)
+- `docs/recovery-status-engine.md` — [status rules, inputs, and usage](docs/recovery-status-engine.md)
 - `api/` — empty extension point
 
 ## Environment variables
@@ -54,4 +56,4 @@ No environment variables are required. When a variable is introduced, document i
 
 ## Scope boundary
 
-Recovery nodes and their relationships are static demonstration data. The priority engine scores explicit inputs using fixed weights and ranks supplied candidates. It does not determine readiness or eligibility, change node statuses, traverse dependencies, or infer priority factors. Intake logic, document processing, AI, retrieval, and priority UI are not implemented.
+Recovery workflow definitions, dependency edges, and case facts are separate data collections. The status engine calculates all five statuses from explicit applicability/progress facts and direct prerequisites. Relationships and sample facts remain illustrative; they are not defaults for real households. Eligibility, completion verification, and case persistence are not implemented. The priority engine scores explicit inputs using fixed weights and ranks supplied candidates. It does not determine readiness or eligibility, change node statuses, traverse dependencies, or infer priority factors. Intake logic, document processing, AI, retrieval, and priority UI are not implemented.

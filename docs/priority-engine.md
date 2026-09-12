@@ -29,7 +29,7 @@ rejects missing or invalid scores instead of guessing.
 These are supplied assessments, not facts the engine discovers. Dependency impact
 is a 0–10 assessment, not the raw number of dependencies. The engine does not look
 up deadlines, inspect evidence, determine eligibility, or traverse relationships.
-It does not derive requiredness from `edgeType`.
+It does not derive requiredness from a `RecoveryEdge.type`.
 
 ```text
 priority = safety_score * 5
@@ -74,7 +74,7 @@ const ranked = rankRecoveryNodes([{ nodeId: "temporary-housing", factors }]);
 // Each result contains nodeId, score, and contributions.
 ```
 
-`nodeId` links a set of inputs to the matching `RecoveryNode.id`. The caller
+`nodeId` links a set of inputs to the matching `RecoveryNodeDefinition.id`. The caller
 supplies the candidates and is responsible for using IDs from its node data.
 Ranking rejects blank IDs and duplicates. It sorts by descending score, then
 ascending ID for ties, so input order does not change tied results. It returns
