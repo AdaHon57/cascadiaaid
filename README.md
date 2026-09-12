@@ -1,6 +1,6 @@
 # Cascadia Aid
 
-A Next.js and TypeScript foundation for a hackathon project. It includes a recovery-node model, static demonstration nodes, a status engine, and an explainable priority engine alongside an application shell and placeholder routes.
+A Next.js and TypeScript foundation for a hackathon project. It includes a recovery-node model, static demonstration nodes, a status engine, an explainable priority engine, and a recovery question-answering module (RAG) grounded in approved government pages, alongside an application shell and placeholder routes.
 
 ## Requirements
 
@@ -35,16 +35,20 @@ Run `npm run format` to apply formatting.
 - `components/ui/` — reusable, accessible interface primitives
 - `types/` — shared domain shapes, including recovery nodes and priority inputs/results
 - `lib/` — recovery status calculation plus priority calculation and ranking
+- `lib/rag/` — recovery question answering from approved sources, with optional workflow/node context
 - `data/` — separate workflow definitions, illustrative edges, sample case facts, and calculated statuses
-- `tests/` — status and priority engine checks
+- `tests/` — status engine, priority engine, and RAG checks
+- `scripts/` — RAG index build, question, and live evaluation commands
+- `app/api/rag/ask/` — `POST /api/rag/ask` endpoint
 - `docs/priority-engine.md` — [scoring explanation and usage](docs/priority-engine.md)
 - `docs/recovery-graph.md` — [recovery definitions, edges, and runtime state](docs/recovery-graph.md)
 - `docs/recovery-status-engine.md` — [status rules, inputs, and usage](docs/recovery-status-engine.md)
+- `docs/rag.md` — [question answering: API, context, sources, and index rebuilds](docs/rag.md)
 - `api/` — empty extension point
 
 ## Environment variables
 
-No environment variables are required. When a variable is introduced, document its name and purpose in `.env.example` without committing its secret value.
+`OPENAI_API_KEY` is required for recovery question answering (`lib/rag`). Optional RAG settings are listed in `.env.example` and [docs/rag.md](docs/rag.md). Keep secret values out of committed files.
 
 ## Deployment
 
@@ -56,4 +60,4 @@ No environment variables are required. When a variable is introduced, document i
 
 ## Scope boundary
 
-Recovery workflow definitions, dependency edges, and case facts are separate data collections. The status engine calculates all five statuses from explicit applicability/progress facts and direct prerequisites. Relationships and sample facts remain illustrative; they are not defaults for real households. Eligibility, completion verification, and case persistence are not implemented. The priority engine scores explicit inputs using fixed weights and ranks supplied candidates. It does not determine readiness or eligibility, change node statuses, traverse dependencies, or infer priority factors. Intake logic, document processing, AI, retrieval, and priority UI are not implemented.
+Recovery workflow definitions, dependency edges, and case facts are separate data collections. The status engine calculates all five statuses from explicit applicability/progress facts and direct prerequisites. Relationships and sample facts remain illustrative; they are not defaults for real households. Eligibility, completion verification, and case persistence are not implemented. The priority engine scores explicit inputs using fixed weights and ranks supplied candidates. It does not determine readiness or eligibility, change node statuses, traverse dependencies, or infer priority factors. The RAG module answers questions only from the approved pages in `lib/rag/sources.ts` and cites them; optional workflow context helps it understand the question but is never treated as a source, and it does not calculate statuses or eligibility. Intake logic, document processing, and priority UI are not implemented.
