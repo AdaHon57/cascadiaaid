@@ -1,6 +1,6 @@
 # Cascadia Aid
 
-A production-minded Next.js and TypeScript foundation for a hackathon project. It uses the App Router, Tailwind CSS, a responsive application shell, reusable UI primitives, and placeholder routes. Product-specific behavior is intentionally out of scope.
+A Next.js and TypeScript foundation for a hackathon project. It includes a recovery-node model, static demonstration nodes, and an explainable priority engine alongside an application shell and placeholder routes.
 
 ## Requirements
 
@@ -22,6 +22,7 @@ Open `http://localhost:3000`.
 ```bash
 npm run format:check
 npm run lint
+npm test
 npm run build
 ```
 
@@ -32,8 +33,12 @@ Run `npm run format` to apply formatting.
 - `app/` — App Router pages plus global loading and error boundaries
 - `components/layout/` — shared application chrome
 - `components/ui/` — reusable, accessible interface primitives
-- `types/` — minimal shared domain shapes
-- `lib/`, `data/`, and `api/` — intentionally empty extension points
+- `types/` — shared domain shapes, including recovery nodes and priority inputs/results
+- `lib/` — priority calculation and ranking
+- `data/` — static demonstration recovery nodes
+- `tests/` — priority engine checks
+- `docs/priority-engine.md` — [scoring explanation and usage](docs/priority-engine.md)
+- `api/` — empty extension point
 
 ## Environment variables
 
@@ -49,4 +54,4 @@ No environment variables are required. When a variable is introduced, document i
 
 ## Scope boundary
 
-This repository contains no eligibility logic, dependency-graph logic, workflows, AI extraction, retrieval systems, document processing, location-specific behavior, fake recovery data, or other core application functionality.
+Recovery nodes and their relationships are static demonstration data. The priority engine scores explicit inputs using fixed weights and ranks supplied candidates. It does not determine readiness or eligibility, change node statuses, traverse dependencies, or infer priority factors. Intake logic, document processing, AI, retrieval, and priority UI are not implemented.
