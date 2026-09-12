@@ -3,10 +3,7 @@ import type { ReactNode } from "react";
 
 const navigation = [
   { href: "/", label: "Home" },
-  { href: "/intake", label: "Intake" },
   { href: "/dashboard", label: "Dashboard" },
-  { href: "/graph", label: "Graph" },
-  { href: "/documents", label: "Documents" },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -28,7 +25,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               <span>Cascadia Aid</span>
             </Link>
             <span className="hidden rounded-none border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600 sm:inline-flex">
-              Foundation
+              Recovery workspace
             </span>
           </div>
           <nav
@@ -53,7 +50,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <footer className="border-t bg-white">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-6 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <p>Cascadia Aid</p>
-          <p>Application foundation · No product logic implemented</p>
+          <p>Recovery planning and documentation</p>
         </div>
       </footer>
     </div>

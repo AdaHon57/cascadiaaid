@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { PageHeader } from "@/components/layout/page-header";
-import { EmptyState } from "@/components/ui";
+import { CaptureWorkspace } from "@/components/documents/capture-workspace";
 
 export const metadata: Metadata = { title: "Documents" };
 
@@ -10,12 +10,9 @@ export default function DocumentsPage() {
       <PageHeader
         eyebrow="Workspace"
         title="Documents"
-        description="This route is ready for future document features."
+        description="Turn document photos into editable text, and document visible property damage."
       />
-      <EmptyState
-        title="No document tools yet"
-        description="Storage, processing, and extraction behavior have not been implemented."
-      />
+      <CaptureWorkspace />
     </div>
   );
 }

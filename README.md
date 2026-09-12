@@ -1,6 +1,6 @@
 # Cascadia Aid
 
-A Next.js and TypeScript foundation for a hackathon project. It includes a recovery-node model, static demonstration nodes, a status engine, and an explainable priority engine alongside an application shell and placeholder routes.
+A Next.js and TypeScript hackathon project with a recovery-node model, illustrative workflow data, status calculation, priority scoring, and image capture for document transcription and visible property-damage observations.
 
 ## Requirements
 
@@ -34,9 +34,10 @@ Run `npm run format` to apply formatting.
 - `components/layout/` — shared application chrome
 - `components/ui/` — reusable, accessible interface primitives
 - `types/` — shared domain shapes, including recovery nodes and priority inputs/results
-- `lib/` — recovery status calculation plus priority calculation and ranking
+- `lib/` — recovery engines, image preparation, OpenAI analysis, and result validation
 - `data/` — separate workflow definitions, illustrative edges, sample case facts, and calculated statuses
-- `tests/` — status and priority engine checks
+- `tests/` — recovery engine and image-analysis checks
+- `docs/image-capture.md` — [image capture, OpenAI setup, fields, and files](docs/image-capture.md)
 - `docs/priority-engine.md` — [scoring explanation and usage](docs/priority-engine.md)
 - `docs/recovery-graph.md` — [recovery definitions, edges, and runtime state](docs/recovery-graph.md)
 - `docs/recovery-status-engine.md` — [status rules, inputs, and usage](docs/recovery-status-engine.md)
@@ -44,7 +45,7 @@ Run `npm run format` to apply formatting.
 
 ## Environment variables
 
-No environment variables are required. When a variable is introduced, document its name and purpose in `.env.example` without committing its secret value.
+Recovery engines need no credentials. Both image tools require `OPENAI_API_KEY`, `OPENAI_VISION_MODEL`, and a random `IMAGE_ANALYSIS_ACCESS_CODE` in ignored `.env.local` (or hosted runtime settings). See [.env.example](.env.example) and the [setup guide](docs/image-capture.md). The API key stays on the server; the separate access code protects the paid endpoint for authorized testers. Restart the development server after configuring it.
 
 ## Deployment
 
@@ -56,4 +57,6 @@ No environment variables are required. When a variable is introduced, document i
 
 ## Scope boundary
 
-Recovery workflow definitions, dependency edges, and case facts are separate data collections. The status engine calculates all five statuses from explicit applicability/progress facts and direct prerequisites. Relationships and sample facts remain illustrative; they are not defaults for real households. Eligibility, completion verification, and case persistence are not implemented. The priority engine scores explicit inputs using fixed weights and ranks supplied candidates. It does not determine readiness or eligibility, change node statuses, traverse dependencies, or infer priority factors. Intake logic, document processing, AI, retrieval, and priority UI are not implemented.
+Recovery workflow definitions, dependency edges, and case facts are separate data collections. The status engine calculates all five statuses from explicit applicability/progress facts and direct prerequisites. Relationships and sample facts remain illustrative; they are not defaults for real households. The priority engine scores explicit inputs using fixed weights and ranks supplied candidates without inferring factors or eligibility.
+
+The Documents page captures one image at a time and sends it to OpenAI after explicit submission consent. It returns editable document text or a draft of visible house-damage observations, with downloads. Results are temporary and do not update recovery facts or statuses. Identity verification, official damage assessment, intake automation, persistent document storage, retrieval, and priority UI are not implemented.
