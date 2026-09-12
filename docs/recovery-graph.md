@@ -1,71 +1,59 @@
 # Recovery graph model
 
-A node describes a recovery task. An edge is a directed link between two tasks.
-Runtime state records progress for a particular recovery case. Keeping these
-separate lets households share the same workflow without sharing their progress.
-TypeScript interfaces describe the expected shape of data during development;
-they do not calculate statuses or save progress to a database.
+A node describes a task. An edge describes a directed prerequisite connection.
+A rule describes when a task applies and what completes it. A household case holds
+answers, evidence reviews, and progress. Status is calculated from those records.
+Keeping these separate lets households share a workflow without sharing progress.
 
-## Types and fields
+See the [household model guide](recovery-household-model.md) for every field, file,
+and rule, and the [status guide](recovery-status-engine.md) for calculation order.
 
-`types/recovery-node.ts` defines the separate shapes:
+## Shared definitions
 
-| Type                     | Field              | Meaning                                                                    |
-| ------------------------ | ------------------ | -------------------------------------------------------------------------- |
-| `RecoveryNodeDefinition` | `id`               | Stable task identifier, used to connect records across files.              |
-|                          | `title`            | Short task name for display.                                               |
-|                          | `description`      | Plain-language explanation of the task.                                    |
-|                          | `requiredEvidence` | Illustrative evidence labels, not uploaded files or verified requirements. |
-|                          | `sourceUrl`        | Reference link; currently `null` because no verified source is attached.   |
-| `RecoveryEdge`           | `from`             | ID of the prerequisite task.                                               |
-|                          | `to`               | ID of the task that depends on it.                                         |
-|                          | `type`             | Category for this individual relationship.                                 |
-| `RecoveryNodeState`      | `nodeId`           | ID of the task whose progress is recorded.                                 |
-|                          | `status`           | That task's progress within a recovery case.                               |
+`RecoveryNodeDefinition` retains `id`, `title`, `description`, the legacy
+`requiredEvidence` display hints, and `sourceUrl`. It now also has `sourceIds`,
+which refer to the shared source registry. Definitions contain no `status`,
+`dependencies`, `edgeType`, or `unlocks`.
 
-`RecoveryEdgeType` allows `REQUIRED`, `LEGAL`, `SAFETY`, `FINANCIAL`, or
-`RECOMMENDED`. A task can now have incoming edges with different categories.
-The status engine treats `RECOMMENDED` edges as optional and the other categories
-as blocking relationships.
+`RecoveryEdge` has `from`, `to`, `type`, and `sourceIds`. Each relationship is
+stored once in `data/recovery-edges.ts`. The existing ten workflow IDs and nine
+relationships are unchanged. The engine does not use the separate visual roadmap
+as a source of extra recovery dependencies.
 
-`RecoveryNodeStatus` still allows `READY`, `BLOCKED`, `IN_PROGRESS`, `COMPLETE`,
-or `NOT_APPLICABLE`. These are now calculated from `RecoveryNodeFacts`
-(`nodeId`, `applicable`, `started`, and `completed`) and the edges. Case facts and
-calculated state remain separate from the shared definitions. See the
-[status engine rules](recovery-status-engine.md) for precedence and unknown inputs.
+`RecoveryNodeRule` has `nodeId`, `applicability`, `completion`, and `sourceIds`.
+Structured completion evidence lives here. Node `requiredEvidence` strings remain
+preparation hints for compatibility, not a second machine-readable checklist.
+Prerequisites live exclusively in the edge collection.
 
-## Data files
+All definitions, edges, and rules reference `illustrative-workflows-v1`. This is
+an honest origin label for the draft, not an official policy citation. Its URL
+is null. No jurisdiction requirements have been verified.
 
-- `data/recovery-nodes.ts` exports `recoveryNodes`: the same ten task IDs,
-  titles, descriptions, evidence lists, and source URLs. Definitions contain no
-  `status`, `dependencies`, `edgeType`, or `unlocks`.
-- `data/recovery-edges.ts` exports `recoveryEdges`: the nine original
-  relationships, each stored once. Each edge inherits the former `edgeType`
-  of its dependent (`to`) task. Root tasks no longer need a placeholder edge type.
-- `data/recovery-node-facts.ts` exports `sampleRecoveryNodeFacts`: explicit
-  applicability and progress inputs for one fictional case.
-- `data/recovery-node-states.ts` exports `sampleRecoveryNodeStates`: calculated
-  from the sample facts and edges when the module loads, not hard-coded statuses.
+## Household records and calculated state
 
-For example, the existing relationship from `damage-documentation` to
-`insurance-claim` is stored as one `REQUIRED` edge. Previously, it appeared both
-in the claim's `dependencies` and in documentation's `unlocks`. Those two lists
-represented the same link. Keeping one record avoids maintaining duplicate lists.
-All migrated relationships remain illustrative, not verified recovery requirements.
+`RecoveryCase` stores an ID, household answers, evidence records, and explicit
+progress. The case engine derives `RecoveryNodeFacts` (`nodeId`, `applicable`,
+`started`, `completed`) and passes them to the dependency engine.
 
-## Compatibility and scope
+`RecoveryNodeState` still has `nodeId` and `status`. The household engine adds
+applicability, missing questions, unmet evidence groups, blocking prerequisite
+IDs, and readable reasons. Match `nodeId` to a definition's `id` for display.
 
-The `recoveryNodes` export and its file path remain available. The old
-`RecoveryNode` type name is a deprecated alias for `RecoveryNodeDefinition`;
-it does not restore the removed fields. Future displays can match definitions
-and state by `id` / `nodeId`, and read relationships from `recoveryEdges`.
-No current UI component consumes the recovery model, so no UI changes were needed.
+`REQUIRED`, `LEGAL`, `SAFETY`, and `FINANCIAL` edges block under the existing
+illustrative policy. `RECOMMENDED` edges do not. The five allowed statuses remain
+`READY`, `BLOCKED`, `IN_PROGRESS`, `COMPLETE`, and `NOT_APPLICABLE`.
 
-The priority engine still takes explicit scores linked by node ID and is unchanged.
-The status engine now checks direct prerequisites and calculates all five
-statuses. It does not mutate input data or infer eligibility, completion,
-or priority factors.
+## Compatibility
 
-For judges: “We separate what a task is, how tasks connect, and a household's
-progress. The ten tasks are reusable definitions, the arrows are separate typed
-relationships, and statuses are calculated from separate household progress facts.”
+`recoveryNodes`, `recoveryEdges`, `sampleRecoveryNodeFacts`, and
+`sampleRecoveryNodeStates` retain their names and paths. Sample facts and states
+are now derived from `sampleRecoveryCase`. The old `RecoveryNode` alias still
+means `RecoveryNodeDefinition`; it does not restore removed fields.
+
+The unused scaffold `TaskNode` and `Document` types now alias the canonical
+recovery definition and evidence types. This removes the competing lowercase
+status vocabulary. Existing UI files do not consume those scaffold types.
+
+Priority inputs use the shared node-ID alias. Their formula and behavior remain
+unchanged. No UI, intake, storage, or automatic image-to-evidence integration is
+part of this model change.

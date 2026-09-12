@@ -1,98 +1,61 @@
-# Calculated recovery statuses
+# Recovery status engine
 
-The workflow describes tasks and their relationships. Case facts describe what
-is known about one household's progress. The status engine combines those inputs
-to calculate a status for each task. It cannot discover whether a household is
-eligible or whether work has actually been completed.
+The application now accepts household answers, evidence records, and progress,
+rather than asking a caller to decide whether each task applies or is complete.
+Use `calculateHouseholdRecovery(caseRecord)` from `lib/recovery-workflow.ts`.
 
-## Inputs
+See the [household model guide](recovery-household-model.md) for every input and
+output field, all ten rules, examples, and the file-by-file explanation.
 
-`RecoveryNodeFacts` in `types/recovery-node.ts` has four fields:
+## Two stages
 
-| Field        | Meaning                                                                                     |
-| ------------ | ------------------------------------------------------------------------------------------- |
-| `nodeId`     | The workflow task these facts describe.                                                     |
-| `applicable` | `true` means it applies, `false` means explicitly not applicable, and `null` means unknown. |
-| `started`    | Whether work on this task has started.                                                      |
-| `completed`  | Whether this task has been explicitly recorded as complete.                                 |
+1. `evaluateRecoveryCase` checks input records and applies each task's draft rule.
+   It derives applicability and completion from answers, an explicit milestone,
+   and accepted evidence linked to that case and task.
+2. `calculateRecoveryNodeStates` checks direct prerequisites and assigns statuses.
+   This lower-level function remains available for compatibility, but application
+   callers should use the household entry point so evidence rules are applied.
 
-These facts must come from a caller. The sample facts are fictional inputs, not
-defaults for real households. No intake, evidence checking, or persistence is
-implemented. A missing facts record is treated as unknown, not as ready.
+Both functions return fresh results without editing inputs or saving anything.
+Recalculate after a household answer, evidence review, or milestone changes.
 
-## Rules, in order
+## Status precedence
 
-The first matching rule determines the result:
+The first matching rule wins:
 
 1. Explicitly not applicable → `NOT_APPLICABLE`.
-2. Unknown applicability or missing facts → `BLOCKED`.
-3. Explicitly complete → `COMPLETE`.
-4. Any unsatisfied blocking prerequisite → `BLOCKED`.
-5. Work has started → `IN_PROGRESS`.
+2. Unknown applicability → `BLOCKED`.
+3. Completion conditions met → `COMPLETE`.
+4. An unsatisfied mandatory prerequisite → `BLOCKED`.
+5. Work started → `IN_PROGRESS`.
 6. Otherwise → `READY`.
 
-This precedence is intentional. Completion does not require a separate started
-flag. Explicit non-applicability wins over progress flags, and unknown
-applicability prevents a completion flag from establishing a usable completion.
-An unfinished task can be blocked even after work starts. Already completed tasks
-remain complete if a prerequisite later changes.
+Required evidence is needed for completion, not to start gathering it. A missing
+conditional answer prevents completion but does not prevent starting an otherwise
+ready task. Missing applicability answers do prevent readiness.
 
-For this illustrative workflow, `REQUIRED`, `LEGAL`, `SAFETY`, and `FINANCIAL`
-edges block until their prerequisite is complete or explicitly not applicable.
-`RECOMMENDED` edges do not block. Treating a non-applicable prerequisite as
-satisfied is an explicit application rule, not a verified legal or program rule.
-No existing edges or their categories have changed.
+`recoveryEdgeBlocks` defines the existing illustrative policy: `REQUIRED`,
+`LEGAL`, `SAFETY`, and `FINANCIAL` block; `RECOMMENDED` never blocks. Every mandatory
+prerequisite must be complete or explicitly not applicable. Unknown applicability,
+ready status, and work in progress cannot satisfy a prerequisite.
 
-Only direct incoming edges need checking: a prerequisite that is merely ready or
-in progress cannot satisfy an edge. Readiness never spreads as completion.
-Unfinished cycles, including self-dependencies, remain blocked without recursive
-traversal. The engine does not repair invalid workflow design. References to
-unknown nodes, duplicate node/fact IDs, unknown edge types, and invalid fact fields
-produce errors rather than silently allowing work.
+A task can be blocked after work has started. A task whose own completion conditions
+are met remains complete if a prerequisite changes. Removing or rejecting its own
+required evidence can remove completion. Unfinished cycles remain blocked without
+recursive traversal or automatic completion.
 
-`BLOCKED` can mean unknown applicability or unmet prerequisites. The current five
-statuses do not distinguish those reasons in the returned data. `READY` means
-ready under these supplied facts and illustrative relationships, not independently
-verified safety, eligibility, or evidence sufficiency.
+## Explanations and scope
 
-## Usage
+Results include `missingAnswers`, `unmetEvidence`, `blockingNodeIds`, and readable
+`reasons`. These distinguish unanswered questions from unfinished prerequisites
+and documents still needed for completion.
 
-```ts
-import { calculateRecoveryNodeStates } from "@/lib/recovery-status-engine";
-import { recoveryNodes } from "@/data/recovery-nodes";
-import { recoveryEdges } from "@/data/recovery-edges";
-import { sampleRecoveryNodeFacts } from "@/data/recovery-node-facts";
+All rules and nine relationships remain illustrative. No eligibility, legal,
+coverage, safety, or permit requirement is inferred. An accepted evidence record
+represents an explicit human review, not authentication or agency approval.
+Image extraction does not automatically populate these records.
 
-const updatedFacts = sampleRecoveryNodeFacts.map((fact) =>
-  fact.nodeId === "identity-replacement" ? { ...fact, completed: true } : fact,
-);
-const states = calculateRecoveryNodeStates(recoveryNodes, recoveryEdges, updatedFacts);
-// Identity replacement is COMPLETE; proof of occupancy becomes READY.
-// Public disaster assistance remains BLOCKED until proof of occupancy is complete.
-```
-
-Call the function again whenever case facts change. It returns a fresh array of
-`{ nodeId, status }` records in definition order, without changing any input.
-It does not maintain an automatic subscription or save the results.
-
-## Files
-
-- `types/recovery-node.ts` defines the facts and calculated state shapes alongside
-  the existing definition, edge, and allowed status types.
-- `lib/recovery-status-engine.ts` validates the inputs and applies the rules above.
-- `data/recovery-node-facts.ts` contains the fictional inputs for the ten tasks.
-- `data/recovery-node-states.ts` preserves the `sampleRecoveryNodeStates` export,
-  now calculated when the module loads. It is a sample snapshot; changing case
-  facts requires another engine call.
-- `tests/recovery-status-engine.test.mjs` checks all five results, changing facts,
-  edge categories, multiple prerequisites, precedence, cycles, malformed inputs,
-  and preservation of inputs.
-- `docs/recovery-status-engine.md` explains these rules and how to call the engine.
-- `docs/recovery-graph.md` and `README.md` describe the updated project structure.
-
-The existing priority engine stays separate: status describes progress and
-readiness; priority compares importance. UI routes remain placeholders.
-
-For judges: “We store facts about a household's progress, then calculate task
-statuses from those facts and the workflow connections. Completing a prerequisite
-can make the next task ready, without manually editing that next task's status.”
+The sample exports now run through the household rules and still demonstrate all
+five statuses. Actual cases must provide their own input; there is no live intake
+form, persistence, or dashboard status wiring in this step. Priority scoring is
+separate and unchanged.

@@ -9,6 +9,7 @@ export const recoveryNodes: RecoveryNodeDefinition[] = [
     description: "Create a record of property damage and affected belongings.",
     requiredEvidence: ["Damage photos", "Inventory of damaged belongings"],
     sourceUrl: null,
+    sourceIds: ["illustrative-workflows-v1"],
   },
   {
     id: "identity-replacement",
@@ -16,6 +17,7 @@ export const recoveryNodes: RecoveryNodeDefinition[] = [
     description: "Replace identity documents lost or damaged in the disaster.",
     requiredEvidence: ["Available identity records"],
     sourceUrl: null,
+    sourceIds: ["illustrative-workflows-v1"],
   },
   {
     id: "proof-of-occupancy",
@@ -23,6 +25,7 @@ export const recoveryNodes: RecoveryNodeDefinition[] = [
     description: "Gather records linking the household to the affected home.",
     requiredEvidence: ["Lease or ownership record", "Utility statement"],
     sourceUrl: null,
+    sourceIds: ["illustrative-workflows-v1"],
   },
   {
     id: "insurance-claim",
@@ -30,6 +33,7 @@ export const recoveryNodes: RecoveryNodeDefinition[] = [
     description: "Prepare a claim describing insured losses.",
     requiredEvidence: ["Insurance policy information", "Damage inventory"],
     sourceUrl: null,
+    sourceIds: ["illustrative-workflows-v1"],
   },
   {
     id: "public-disaster-assistance",
@@ -37,6 +41,7 @@ export const recoveryNodes: RecoveryNodeDefinition[] = [
     description: "Prepare household information for a disaster assistance request.",
     requiredEvidence: ["Occupancy records", "Summary of recovery needs"],
     sourceUrl: null,
+    sourceIds: ["illustrative-workflows-v1"],
   },
   {
     id: "temporary-housing",
@@ -44,6 +49,7 @@ export const recoveryNodes: RecoveryNodeDefinition[] = [
     description: "Record the household's need for a temporary place to stay.",
     requiredEvidence: ["Household size", "Temporary accommodation needs"],
     sourceUrl: null,
+    sourceIds: ["illustrative-workflows-v1"],
   },
   {
     id: "hazardous-material-assessment-removal",
@@ -51,6 +57,7 @@ export const recoveryNodes: RecoveryNodeDefinition[] = [
     description: "Track professional assessment and removal of hazardous materials.",
     requiredEvidence: ["Professional assessment report", "Removal completion record"],
     sourceUrl: null,
+    sourceIds: ["illustrative-workflows-v1"],
   },
   {
     id: "property-tax-relief",
@@ -58,6 +65,7 @@ export const recoveryNodes: RecoveryNodeDefinition[] = [
     description: "Record a possible request for property-tax relief after damage.",
     requiredEvidence: ["Property assessment record", "Damage documentation"],
     sourceUrl: null,
+    sourceIds: ["illustrative-workflows-v1"],
   },
   {
     id: "building-permits",
@@ -65,6 +73,7 @@ export const recoveryNodes: RecoveryNodeDefinition[] = [
     description: "Track permits for the proposed repair or rebuilding work.",
     requiredEvidence: ["Proposed construction plans", "Site assessment record"],
     sourceUrl: null,
+    sourceIds: ["illustrative-workflows-v1"],
   },
   {
     id: "repair-rebuilding",
@@ -72,5 +81,6 @@ export const recoveryNodes: RecoveryNodeDefinition[] = [
     description: "Track the work needed to repair or rebuild the affected home.",
     requiredEvidence: ["Repair scope", "Work estimate", "Permit records"],
     sourceUrl: null,
+    sourceIds: ["illustrative-workflows-v1"],
   },
 ];

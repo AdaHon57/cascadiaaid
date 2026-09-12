@@ -40,6 +40,7 @@ Run `npm run format` to apply formatting.
 - `docs/image-capture.md` — [image capture, OpenAI setup, fields, and files](docs/image-capture.md)
 - `docs/priority-engine.md` — [scoring explanation and usage](docs/priority-engine.md)
 - `docs/recovery-graph.md` — [recovery definitions, edges, and runtime state](docs/recovery-graph.md)
+- `docs/recovery-household-model.md` — [household fields, all ten rules, evidence, and file guide](docs/recovery-household-model.md)
 - `docs/recovery-status-engine.md` — [status rules, inputs, and usage](docs/recovery-status-engine.md)
 - `api/` — empty extension point
 
@@ -57,6 +58,6 @@ Recovery engines need no credentials. Both image tools require `OPENAI_API_KEY`,
 
 ## Scope boundary
 
-Recovery workflow definitions, dependency edges, and case facts are separate data collections. The status engine calculates all five statuses from explicit applicability/progress facts and direct prerequisites. Relationships and sample facts remain illustrative; they are not defaults for real households. The priority engine scores explicit inputs using fixed weights and ranks supplied candidates without inferring factors or eligibility.
+Recovery workflow definitions, dependency edges, rules, source references, and household facts are separate data collections. `calculateHouseholdRecovery(caseRecord)` derives applicability and completion from household answers, recorded milestones, and reviewed evidence, then calculates all five statuses with explanations. Required prerequisites block; recommendations do not. All ten rules and the nine preserved relationships remain illustrative; sample facts are not defaults for real households. No jurisdiction-specific policy has been verified. The priority engine scores explicit inputs using fixed weights and ranks supplied candidates without inferring factors or eligibility.
 
 The Documents page captures one image at a time and sends it to OpenAI after explicit submission consent. It returns editable document text or a draft of visible house-damage observations, with downloads. Results are temporary and do not update recovery facts or statuses. Identity verification, official damage assessment, intake automation, persistent document storage, retrieval, and priority UI are not implemented.

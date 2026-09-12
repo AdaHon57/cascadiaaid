@@ -1,12 +1,5 @@
-import { calculateRecoveryNodeStates } from "@/lib/recovery-status-engine";
-import { recoveryNodes } from "@/data/recovery-nodes";
-import { recoveryEdges } from "@/data/recovery-edges";
-import { sampleRecoveryNodeFacts } from "@/data/recovery-node-facts";
+import { sampleRecoveryCase } from "@/data/sample-recovery-case";
+import { calculateHouseholdRecovery } from "@/lib/recovery-workflow";
 
-// Compatibility export: calculated sample output, never a hand-assigned status list.
-// Call the engine again with updated facts whenever a case changes.
-export const sampleRecoveryNodeStates = calculateRecoveryNodeStates(
-  recoveryNodes,
-  recoveryEdges,
-  sampleRecoveryNodeFacts,
-);
+// A calculated demonstration snapshot. Recalculate an actual case when its facts change.
+export const sampleRecoveryNodeStates = calculateHouseholdRecovery(sampleRecoveryCase).states;

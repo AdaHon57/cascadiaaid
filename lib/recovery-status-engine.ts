@@ -1,9 +1,19 @@
 import type {
   RecoveryEdge,
+  RecoveryEdgeType,
   RecoveryNodeDefinition,
   RecoveryNodeFacts,
   RecoveryNodeState,
 } from "@/types/recovery-node";
+
+/** The existing illustrative graph treats every category except recommendations as required. */
+export const recoveryEdgeBlocks: Readonly<Record<RecoveryEdgeType, boolean>> = Object.freeze({
+  REQUIRED: true,
+  LEGAL: true,
+  SAFETY: true,
+  FINANCIAL: true,
+  RECOMMENDED: false,
+});
 
 /** Calculate fresh statuses from case facts and direct incoming edges. */
 export function calculateRecoveryNodeStates(
@@ -39,10 +49,10 @@ export function calculateRecoveryNodeStates(
     if (!nodeIds.has(edge.from) || !nodeIds.has(edge.to)) {
       throw new TypeError("Recovery edges must reference known node IDs.");
     }
-    if (!["REQUIRED", "LEGAL", "SAFETY", "FINANCIAL", "RECOMMENDED"].includes(edge.type)) {
+    if (!Object.hasOwn(recoveryEdgeBlocks, edge.type)) {
       throw new TypeError("Unknown recovery edge type.");
     }
-    if (edge.type !== "RECOMMENDED") {
+    if (recoveryEdgeBlocks[edge.type]) {
       const incoming = prerequisites.get(edge.to) ?? [];
       incoming.push(edge.from);
       prerequisites.set(edge.to, incoming);

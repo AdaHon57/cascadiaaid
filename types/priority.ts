@@ -1,3 +1,5 @@
+import type { RecoveryNodeId } from "@/types/recovery-case";
+
 /** All factors use a 0–10 scale. Fractions are allowed. */
 export interface PriorityFactors {
   /** Risk to housing, health, access, or safety from delaying. */
@@ -20,7 +22,7 @@ export interface PriorityFactors {
 
 /** Supplied scores for one recovery node, linked by its ID. */
 export interface PriorityCandidate {
-  readonly nodeId: string;
+  readonly nodeId: RecoveryNodeId;
   readonly factors: Readonly<PriorityFactors>;
 }
 
@@ -31,5 +33,5 @@ export interface PriorityScore {
 }
 
 export interface RankedRecoveryNode extends PriorityScore {
-  readonly nodeId: string;
+  readonly nodeId: RecoveryNodeId;
 }

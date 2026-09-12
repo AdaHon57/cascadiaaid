@@ -3,7 +3,8 @@ import test from "node:test";
 import { calculateRecoveryNodeStates } from "../lib/recovery-status-engine.ts";
 import { recoveryNodes } from "../data/recovery-nodes.ts";
 import { recoveryEdges } from "../data/recovery-edges.ts";
-import { sampleRecoveryNodeFacts } from "../data/recovery-node-facts.ts";
+import { importTypeScript } from "./helpers/import-typescript.mjs";
+const { sampleRecoveryNodeFacts } = await importTypeScript("data/recovery-node-facts");
 
 const node = (id) => ({ id, title: id, description: "", requiredEvidence: [], sourceUrl: null });
 const fact = (nodeId, overrides = {}) => ({

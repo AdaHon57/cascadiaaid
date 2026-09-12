@@ -4,17 +4,14 @@ export interface UserProfile {
   email?: string;
 }
 
-export interface Document {
-  id: string;
-  name: string;
-  createdAt?: string;
-}
+/** @deprecated Use RecoveryEvidence for household evidence records. */
+export type { RecoveryEvidence as Document } from "./recovery-case";
 
-export interface TaskNode {
-  id: string;
-  title: string;
-  status?: "pending" | "active" | "complete";
-}
+/** @deprecated Use the separate definition and state types. */
+export type { RecoveryNodeDefinition as TaskNode } from "./recovery-node";
+export type * from "./recovery-node";
+export type * from "./recovery-case";
+export type * from "./recovery-rule";
 
 export interface Program {
   id: string;
