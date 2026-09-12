@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { ImagePicker } from "./image-picker";
+import { analyzeCapture } from "@/lib/capture-analysis-client";
 import { prepareCapture, downloadText } from "@/lib/image-capture";
 import { parseDocumentTextResult } from "@/lib/document-text-result";
 import { PHOTO_LIMITATION, parseDamageAnalysis } from "@/lib/damage-photo-result";
@@ -138,20 +139,16 @@ function CaptureTool({ mode }: { mode: Mode }) {
     setBusy(true);
     setProgress(house ? "Reviewing visible damage…" : "Reading document text…");
     try {
-      const response = await fetch("/api/image-analysis", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Analysis-Code": accessCode },
-        signal: AbortSignal.any([controller.signal, AbortSignal.timeout(55_000)]),
-        body: JSON.stringify({ image, consent, mode, documentKind: kind }),
-      });
-      const data = await response.json();
-      if (!response.ok)
-        throw new Error(typeof data.error === "string" ? data.error : "Image analysis failed.");
+      const resultData = await analyzeCapture(
+        { image, consent, mode, documentKind: kind },
+        accessCode,
+        controller.signal,
+      );
       if (controller.signal.aborted) return;
       if (house) {
-        setAnalysis(parseDamageAnalysis(data.result));
+        setAnalysis(parseDamageAnalysis(resultData));
       } else {
-        const result = parseDocumentTextResult(data.result);
+        const result = parseDocumentTextResult(resultData);
         setOcr(result);
         setText(result.text);
         if (!result.text)

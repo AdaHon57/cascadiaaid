@@ -1,8 +1,14 @@
 import type { HouseholdAnswerKey, RecoveryCase } from "@/types/recovery-case";
 import type { RecoveryNodeFacts } from "@/types/recovery-node";
-import type { RecoveryCaseEvaluation, RecoveryWorkflow } from "@/types/recovery-rule";
+import type {
+  RecoveryCaseEvaluation,
+  RecoveryNodeEvaluation,
+  RecoveryWorkflow,
+} from "@/types/recovery-rule";
 import { calculateRecoveryNodeStates, recoveryEdgeBlocks } from "@/lib/recovery-status-engine";
 import { validateRecoveryCase } from "@/lib/recovery-case-validation";
+import { explainRecoveryDependencies } from "@/lib/recovery-blockers";
+import { householdQuestions } from "@/data/household-questions";
 
 /** Recalculate from a complete case snapshot; never edit or persist the input. */
 export function evaluateRecoveryCase(
@@ -11,6 +17,7 @@ export function evaluateRecoveryCase(
 ): RecoveryCaseEvaluation {
   validateRecoveryCase(input, workflow);
   const rules = new Map(workflow.rules.map((rule) => [rule.nodeId, rule]));
+  const nodes = new Map(workflow.nodes.map((node) => [node.id, node]));
   const progress = new Map(input.progress.map((item) => [item.nodeId, item]));
   const details = new Map<
     string,
@@ -68,7 +75,7 @@ export function evaluateRecoveryCase(
 
   const calculated = calculateRecoveryNodeStates(workflow.nodes, workflow.edges, facts);
   const factsById = new Map(facts.map((fact) => [fact.nodeId, fact]));
-  const states = calculated.map((state) => {
+  const states: RecoveryNodeEvaluation[] = calculated.map((state) => {
     const fact = factsById.get(state.nodeId)!;
     const detail = details.get(state.nodeId)!;
     const blockingNodeIds =
@@ -96,11 +103,25 @@ export function evaluateRecoveryCase(
       if (fact.applicable === null)
         reasons.push("Answer the applicability questions before this task can be ready.");
       if (blockingNodeIds.length)
-        reasons.push("Required prerequisites are unfinished or their applicability is unknown.");
+        reasons.push(
+          `Unfinished or unknown prerequisites: ${blockingNodeIds.map((id) => nodes.get(id)!.title).join(", ")}.`,
+        );
       if (detail.missingAnswers.length)
-        reasons.push(`Missing answers: ${detail.missingAnswers.join(", ")}.`);
+        reasons.push(
+          ...detail.missingAnswers.map((key) => `Answer needed: ${householdQuestions[key]}`),
+        );
       if (detail.unmetEvidence.length)
-        reasons.push(`Evidence still needed for completion: ${detail.unmetEvidence.join(", ")}.`);
+        reasons.push(
+          `Reviewed evidence still needed for completion: ${rules
+            .get(state.nodeId)!
+            .completion.evidence.filter((group) => detail.unmetEvidence.includes(group.id))
+            .map((group) =>
+              group.when && input.answers[group.when] == null
+                ? `${group.label} (if required; answer needed)`
+                : group.label,
+            )
+            .join(", ")}.`,
+        );
       if (!detail.milestoneReached) reasons.push(`Milestone not recorded: ${detail.milestone}.`);
       if (state.status === "READY")
         reasons.push("The task can start under the supplied facts and illustrative prerequisites.");
@@ -114,7 +135,12 @@ export function evaluateRecoveryCase(
       unmetEvidence: detail.unmetEvidence,
       blockingNodeIds,
       reasons,
+      blockingDependencies: [],
     };
   });
+  const statesById = new Map(states.map((state) => [state.nodeId, state]));
+  for (const state of states) {
+    state.blockingDependencies = explainRecoveryDependencies(state.nodeId, statesById, nodes);
+  }
   return { facts, states };
 }

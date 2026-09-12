@@ -1,9 +1,15 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { SettingsMenu } from "@/components/layout/settings-menu";
+import { ProfileMenu } from "@/components/layout/profile-menu";
+import { BrandLogo } from "@/components/layout/brand-logo";
+import { SupportChat } from "@/components/support/support-chat";
 
 const navigation = [
-  { href: "/", label: "Home" },
+  { href: "/intake", label: "Intake" },
   { href: "/dashboard", label: "Dashboard" },
+  { href: "/roadmap", label: "Roadmap" },
+  { href: "/applications", label: "Applications" },
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -13,24 +19,20 @@ export function AppShell({ children }: { children: ReactNode }) {
         <div className="mx-auto flex max-w-7xl flex-col px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between gap-4">
             <Link
-              href="/"
+              href="/dashboard"
               className="inline-flex items-center gap-2 rounded-none font-semibold tracking-tight text-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 focus-visible:ring-offset-2"
             >
-              <span
-                aria-hidden="true"
-                className="grid size-8 place-items-center rounded-none bg-teal-700 text-sm font-bold text-white"
-              >
-                CA
-              </span>
+              <BrandLogo />
               <span>Cascadia Aid</span>
             </Link>
-            <span className="hidden rounded-none border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-600 sm:inline-flex">
-              Recovery workspace
-            </span>
+            <div className="flex items-center gap-2">
+              <SettingsMenu />
+              <ProfileMenu />
+            </div>
           </div>
           <nav
             aria-label="Primary navigation"
-            className="-mx-1 flex gap-1 overflow-x-auto pb-3 sm:absolute sm:left-1/2 sm:top-3 sm:-translate-x-1/2 sm:pb-0"
+            className="-mx-1 flex gap-1 overflow-x-auto pb-3 lg:absolute lg:left-1/2 lg:top-3 lg:-translate-x-1/2 lg:pb-0"
           >
             {navigation.map((item) => (
               <Link
@@ -49,10 +51,13 @@ export function AppShell({ children }: { children: ReactNode }) {
       </main>
       <footer className="border-t bg-white">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-6 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
-          <p>Cascadia Aid</p>
-          <p>Recovery planning and documentation</p>
+          <p className="flex items-center gap-2">
+            <BrandLogo />
+            <span>Cascadia Aid</span>
+          </p>
         </div>
       </footer>
+      <SupportChat />
     </div>
   );
 }

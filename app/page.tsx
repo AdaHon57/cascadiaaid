@@ -1,1 +1,5 @@
-export { default, metadata } from "./intake/page";
+import { redirect } from "next/navigation";
+
+export default function HomePage() {
+  redirect("/dashboard");
+}

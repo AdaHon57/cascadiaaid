@@ -12,6 +12,10 @@ function moduleUrl(path) {
     })
     .outputText.replace(/(["'])@\/([^"']+)\1/g, (_, quote, dependency) =>
       JSON.stringify(moduleUrl(dependency)),
+    )
+    .replace(
+      /(from\s+|import\s*\()(["'])(pdf-lib|@pdf-lib\/fontkit)\2/g,
+      (_, prefix, quote, name) => prefix + JSON.stringify(import.meta.resolve(name)),
     );
   const url = `data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`;
   cache.set(path, url);

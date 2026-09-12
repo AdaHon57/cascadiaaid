@@ -107,3 +107,42 @@ For judges: “We give each task eight explicit ratings. The engine applies our
 weights, subtracts uncertainty, and orders the tasks by total score. It also shows
 every contribution, so we can explain the order. Readiness and eligibility are
 separate from importance.”
+
+## Dashboard integration
+
+`/` redirects to `/dashboard`; navigation has one Dashboard entry. Intake stays
+at `/intake`, accessible from the Dashboard or Settings.
+
+`lib/dashboard-steps.ts` ranks the visible engine-backed tasks through
+`rankRecoveryNodes`. Dashboard shows a scrolling list in that order, including
+gray cards for tasks with unmet prerequisites. Each blocked card has an info
+control that reveals the engine's direct and upstream dependency explanations.
+Starting a blocked step is disabled in the UI and rejected by the API.
+Completed and inapplicable tasks are omitted unless a separate follow-up remains.
+Urgent housing remains at the top until skipped. Unconfirmed households get an
+intake step, and an empty recovery list offers an information-review step.
+
+Skip moves a step below the unskipped list without changing recovery facts,
+completion, or dependency satisfaction. Restore returns it to the priority order.
+Both groups preserve priority order internally. Skipping the current task advances
+to the next unblocked, unskipped task. If none exists, there is no current step.
+“Work on this step” explicitly selects current work and opens the step's destination.
+Dashboard and Roadmap share the same selection function; Roadmap draws a green
+ring and glow around that task, independently of which map card is inspected.
+
+`PUT /api/intake/dashboard` saves skip/restore/start actions in the existing
+household payload with the existing origin, session and revision checks.
+The optional `dashboard` field keeps older records compatible. It does not modify
+engine progress. Wiping the household removes these preferences; randomizing
+intake resets them. No database schema migration is required.
+
+`data/dashboard-priorities.ts` holds editable **starter assessments**, separate
+from the engine's fixed weights and node definitions. They are initial product
+judgments, not verified household assessments. Deadline and requiredness inputs
+currently give no bonus; recorded deadlines are not yet translated into urgency
+scores. Each of the eight factors is explicit. Replace these assessments as the
+scoring policy is refined. The list function also accepts a ratings object for
+testing or a future household-specific scoring source.
+
+The Dashboard recalculates on household refresh, including window focus and the
+existing 30-second refresh, and immediately after a successful Dashboard action.

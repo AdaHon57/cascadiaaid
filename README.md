@@ -42,6 +42,8 @@ Run `npm run format` to apply formatting.
 - `docs/recovery-graph.md` — [recovery definitions, edges, and runtime state](docs/recovery-graph.md)
 - `docs/recovery-household-model.md` — [household fields, all ten rules, evidence, and file guide](docs/recovery-household-model.md)
 - `docs/recovery-status-engine.md` — [status rules, inputs, and usage](docs/recovery-status-engine.md)
+- `docs/recovery-recalculation.md` — [household edits and downstream blocker explanations](docs/recovery-recalculation.md)
+- `docs/support-chat.md` — [continual support chat, retrieval, configuration, and limits](docs/support-chat.md)
 - `api/` — empty extension point
 
 ## Environment variables
@@ -56,8 +58,14 @@ Recovery engines need no credentials. Both image tools require `OPENAI_API_KEY`,
 4. Point the domain's DNS records at the values provided by the hosting environment.
 5. Verify HTTPS and each route after DNS propagation completes.
 
+## Recovery journey
+
+The shared journey engine now covers all 21 roadmap nodes with milestone-based prerequisites, independent program outcomes, editable packet preparation, PDF/calendar exports, and approved simulated submissions. See [the implementation and API guide](docs/recovery-journey.md). Dashboard step details and Roadmap node selection open the shared task workspace; Demo controls offer confirmed sample scenarios and simulated external events.
+
 ## Scope boundary
+
+`updateHouseholdRecovery(caseRecord, changes)` applies answer, evidence, and progress edits, recalculates all ten tasks, and returns updated blocker paths plus before/after results for changed nodes. This engine entry point is not yet connected to intake, image capture, or dashboard state.
 
 Recovery workflow definitions, dependency edges, rules, source references, and household facts are separate data collections. `calculateHouseholdRecovery(caseRecord)` derives applicability and completion from household answers, recorded milestones, and reviewed evidence, then calculates all five statuses with explanations. Required prerequisites block; recommendations do not. All ten rules and the nine preserved relationships remain illustrative; sample facts are not defaults for real households. No jurisdiction-specific policy has been verified. The priority engine scores explicit inputs using fixed weights and ranks supplied candidates without inferring factors or eligibility.
 
-The Documents page captures one image at a time and sends it to OpenAI after explicit submission consent. It returns editable document text or a draft of visible house-damage observations, with downloads. Results are temporary and do not update recovery facts or statuses. Identity verification, official damage assessment, intake automation, persistent document storage, retrieval, and priority UI are not implemented.
+The Documents page captures one image at a time and sends it to OpenAI after explicit submission consent. It returns editable document text or a draft of visible house-damage observations, with downloads. Results are temporary and do not update recovery facts or statuses. The support chatbot retrieves curated site guidance and illustrative workflow definitions; it does not retrieve private uploaded documents. See [support chat](docs/support-chat.md) for configuration and limits. Identity verification and official damage assessment are not implemented.

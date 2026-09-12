@@ -1,0 +1,111 @@
+import type { PriorityFactors } from "@/types/priority";
+
+/**
+ * Editable starter assessments for the Dashboard, not verified household facts.
+ * All eight inputs are explicit. The existing engine weights stay unchanged.
+ * Deadline and required scores are deliberately unassessed (no bonus); these
+ * defaults do not establish that deadlines or legal/program requirements are absent.
+ * Replace these draft assessments as the scoring policy is refined.
+ */
+export const dashboardPriorityFactors: Readonly<Record<string, Readonly<PriorityFactors>>> = {
+  "temporary-housing": {
+    safety_score: 10,
+    deadline_score: 0,
+    dependency_unlock_score: 8,
+    financial_impact: 6,
+    required_score: 0,
+    waiting_time_score: 7,
+    quick_win_score: 5,
+    uncertainty_penalty: 2,
+  },
+  "damage-documentation": {
+    safety_score: 3,
+    deadline_score: 0,
+    dependency_unlock_score: 9,
+    financial_impact: 8,
+    required_score: 0,
+    waiting_time_score: 2,
+    quick_win_score: 8,
+    uncertainty_penalty: 2,
+  },
+  "identity-replacement": {
+    safety_score: 4,
+    deadline_score: 0,
+    dependency_unlock_score: 8,
+    financial_impact: 5,
+    required_score: 0,
+    waiting_time_score: 8,
+    quick_win_score: 6,
+    uncertainty_penalty: 2,
+  },
+  "proof-of-occupancy": {
+    safety_score: 2,
+    deadline_score: 0,
+    dependency_unlock_score: 8,
+    financial_impact: 7,
+    required_score: 0,
+    waiting_time_score: 3,
+    quick_win_score: 8,
+    uncertainty_penalty: 2,
+  },
+  "insurance-claim": {
+    safety_score: 2,
+    deadline_score: 0,
+    dependency_unlock_score: 7,
+    financial_impact: 9,
+    required_score: 0,
+    waiting_time_score: 9,
+    quick_win_score: 5,
+    uncertainty_penalty: 2,
+  },
+  "public-disaster-assistance": {
+    safety_score: 4,
+    deadline_score: 0,
+    dependency_unlock_score: 6,
+    financial_impact: 9,
+    required_score: 0,
+    waiting_time_score: 8,
+    quick_win_score: 5,
+    uncertainty_penalty: 2,
+  },
+  "hazardous-material-assessment-removal": {
+    safety_score: 9,
+    deadline_score: 0,
+    dependency_unlock_score: 9,
+    financial_impact: 7,
+    required_score: 0,
+    waiting_time_score: 7,
+    quick_win_score: 2,
+    uncertainty_penalty: 2,
+  },
+  "building-permits": {
+    safety_score: 3,
+    deadline_score: 0,
+    dependency_unlock_score: 9,
+    financial_impact: 7,
+    required_score: 0,
+    waiting_time_score: 8,
+    quick_win_score: 3,
+    uncertainty_penalty: 2,
+  },
+  "repair-rebuilding": {
+    safety_score: 6,
+    deadline_score: 0,
+    dependency_unlock_score: 5,
+    financial_impact: 9,
+    required_score: 0,
+    waiting_time_score: 7,
+    quick_win_score: 1,
+    uncertainty_penalty: 2,
+  },
+  "property-tax-relief": {
+    safety_score: 1,
+    deadline_score: 0,
+    dependency_unlock_score: 2,
+    financial_impact: 7,
+    required_score: 0,
+    waiting_time_score: 6,
+    quick_win_score: 7,
+    uncertainty_penalty: 2,
+  },
+};

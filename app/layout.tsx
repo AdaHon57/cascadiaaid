@@ -20,8 +20,9 @@ export const metadata: Metadata = {
   },
   description: "A clean, accessible foundation for the Cascadia Aid application.",
   icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
+    icon: { url: "/logo-transparent.png", type: "image/png" },
+    shortcut: "/logo-transparent.png",
+    apple: "/logo-transparent.png",
   },
 };
 

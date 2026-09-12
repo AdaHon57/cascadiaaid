@@ -17,7 +17,9 @@ output field, all ten rules, examples, and the file-by-file explanation.
    callers should use the household entry point so evidence rules are applied.
 
 Both functions return fresh results without editing inputs or saving anything.
-Recalculate after a household answer, evidence review, or milestone changes.
+Use `updateHouseholdRecovery(caseRecord, changes)` to apply answer, evidence, or
+progress edits and return a freshly evaluated graph with before/after results
+for changed nodes. See the [recalculation guide](recovery-recalculation.md).
 
 ## Status precedence
 
@@ -48,7 +50,10 @@ recursive traversal or automatic completion.
 
 Results include `missingAnswers`, `unmetEvidence`, `blockingNodeIds`, and readable
 `reasons`. These distinguish unanswered questions from unfinished prerequisites
-and documents still needed for completion.
+and documents still needed for completion. `blockingDependencies` adds upstream
+prerequisites with their titles, statuses, reasons, and one shortest path per
+task. This explanation traversal handles cycles and ignores recommendations;
+it does not change status precedence or complete downstream tasks automatically.
 
 All rules and nine relationships remain illustrative. No eligibility, legal,
 coverage, safety, or permit requirement is inferred. An accepted evidence record

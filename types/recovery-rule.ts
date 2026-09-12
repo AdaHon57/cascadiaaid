@@ -10,6 +10,7 @@ import type {
   RecoveryNodeDefinition,
   RecoveryNodeFacts,
   RecoveryNodeState,
+  RecoveryNodeStatus,
 } from "@/types/recovery-node";
 
 export interface RecoveryWorkflow {
@@ -44,6 +45,18 @@ export interface RecoveryNodeEvaluation extends RecoveryNodeState {
   missingAnswers: HouseholdAnswerKey[];
   unmetEvidence: string[];
   blockingNodeIds: RecoveryNodeId[];
+  reasons: string[];
+  /** Direct and upstream unfinished prerequisites, with one shortest path per node. */
+  blockingDependencies: RecoveryDependencyBlocker[];
+}
+
+export interface RecoveryDependencyBlocker {
+  nodeId: RecoveryNodeId;
+  title: string;
+  status: RecoveryNodeStatus;
+  /** Starts at the evaluated task and follows prerequisites upstream. */
+  path: RecoveryNodeId[];
+  /** That prerequisite's own current reasons, without nested copies of the graph. */
   reasons: string[];
 }
 

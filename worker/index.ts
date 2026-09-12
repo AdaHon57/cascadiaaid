@@ -1,3 +1,6 @@
+import { handleIntakeRequest } from "@/lib/intake-api";
+import type { IntakeEnvironment } from "@/types/intake-storage";
+import { createSupportChatHandler } from "@/lib/support-chat";
 /** Cloudflare Worker entry point for the vinext-starter template. */
 import {
   handleImageOptimization,
@@ -6,9 +9,10 @@ import {
 } from "vinext/server/image-optimization";
 import handler from "vinext/server/app-router-entry";
 
-interface Env {
-  ASSETS: Fetcher;
-  DB: D1Database;
+interface Env extends IntakeEnvironment {
+  OPENAI_API_KEY?: string;
+  OPENAI_SUPPORT_MODEL?: string;
+  ASSETS: { fetch(request: Request): Promise<Response> };
   IMAGES: {
     input(stream: ReadableStream): {
       transform(options: Record<string, unknown>): {
@@ -32,6 +36,18 @@ interface ExecutionContext {
 const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
+    if (url.pathname === "/api/support-chat") {
+      return supportHandler(request, {
+        apiKey: env.OPENAI_API_KEY ?? process.env.OPENAI_API_KEY,
+        model: env.OPENAI_SUPPORT_MODEL ?? process.env.OPENAI_SUPPORT_MODEL,
+      });
+    }
+    if (url.pathname === "/api/intake" || url.pathname.startsWith("/api/intake/")) {
+      return handleIntakeRequest(request, env, {
+        apiKey: env.OPENAI_API_KEY ?? process.env.OPENAI_API_KEY,
+        model: env.OPENAI_SUPPORT_MODEL ?? process.env.OPENAI_SUPPORT_MODEL,
+      });
+    }
 
     if (url.pathname === "/_vinext/image") {
       const allowedWidths = [...DEFAULT_DEVICE_SIZES, ...DEFAULT_IMAGE_SIZES];
@@ -55,3 +71,6 @@ const worker = {
 };
 
 export default worker;
+
+// One budget per worker; credentials are passed only for the current request.
+const supportHandler = createSupportChatHandler(() => ({}));

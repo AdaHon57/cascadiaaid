@@ -12,6 +12,7 @@ export type { RecoveryNodeDefinition as TaskNode } from "./recovery-node";
 export type * from "./recovery-node";
 export type * from "./recovery-case";
 export type * from "./recovery-rule";
+export type * from "./recovery-update";
 
 export interface Program {
   id: string;
