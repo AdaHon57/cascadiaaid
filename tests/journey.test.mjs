@@ -284,7 +284,7 @@ test("PDF packet paginates long Unicode content and calendar escapes untrusted t
   const record = demo();
   const packet = prepareJourneyArtifact(record, "damage", undefined, now);
   packet.text =
-    "Prepared packet for José — household review.\n" +
+    "Prepared packet for José \u2014 household review.\n" +
     "Evidence reference and detailed observations. ".repeat(500);
   const font = readFileSync(new URL("../public/fonts/NotoSans-Regular.ttf", import.meta.url));
   const bytes = await recoveryPacketPdf(packet, [], font);

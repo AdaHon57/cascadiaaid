@@ -346,7 +346,7 @@ function CaptureTool({ mode }: { mode: Mode }) {
                   onClick={() =>
                     downloadText(
                       [
-                        "Cascadia Aid — House-photo observations (AI draft)",
+                        "Cascadia Aid: House-photo observations (AI draft)",
                         PHOTO_LIMITATION,
                         `Photo quality: ${analysis.imageQuality}; Subject: ${analysis.subject}`,
                         analysis.summary,
@@ -393,7 +393,7 @@ function CaptureTool({ mode }: { mode: Mode }) {
                   </ul>
                 )}
                 <label htmlFor="extracted-text" className="block text-sm font-medium">
-                  {documentLabels[kind]} — editable text
+                  {documentLabels[kind]}: editable text
                   <textarea
                     id="extracted-text"
                     rows={14}

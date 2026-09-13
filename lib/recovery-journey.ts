@@ -14,6 +14,7 @@ import type {
 } from "@/types/journey";
 import type { PriorityFactors } from "@/types/priority";
 import type { MapBadge } from "@/lib/intake-map";
+import { organizationForTask } from "@/lib/household-organizations";
 
 const programStages = ["application", "review", "appeal", "funds"];
 export const baseTaskId = (id: string) => id.split(":")[0];
@@ -25,7 +26,7 @@ export function journeyDefinitions(record: IntakeRecord): JourneyDefinition[] {
       : apps.map((app) => ({
           ...def,
           id: `${def.id}:${app.id}`,
-          title: `${def.title} — ${app.organization || "Unnamed program"}`,
+          title: `${def.title}: ${app.organization || "Unnamed program"}`,
           recipient: app.organization || def.recipient,
           prerequisites: def.prerequisites.map((p) => ({ ...p, id: `${p.id}:${app.id}` })),
         })),
@@ -219,7 +220,6 @@ export function evaluateJourney(record: IntakeRecord, now = new Date()): Evaluat
     } else if (!relevantPrerequisites(def).every(satisfied)) status = "blocked";
     else if (task?.response) status = task.response;
     else if (task?.submittedAt) status = "waiting";
-    else if (task?.startedAt || task?.artifact) status = "preparing";
     resolving.delete(def.id);
     statuses.set(def.id, status);
     return status;
@@ -312,15 +312,16 @@ export function journeyBadges(record: IntakeRecord): Record<string, MapBadge> {
           ? "complete"
           : status === "blocked" || status === "denied" || status === "information"
             ? "blocked"
-            : ["waiting", "approved", "partial", "preparing"].includes(status)
+            : ["waiting", "approved", "partial"].includes(status)
               ? "waiting"
-              : ["closed", "not-applicable"].includes(status)
-                ? "unknown"
-                : "ready";
+              : status === "not-applicable"
+                ? "not-applicable"
+                : status === "closed"
+                  ? "unknown"
+                  : "ready";
       const labels: Record<JourneyStatus, string> = {
         ready: "Available action",
         blocked: "Prerequisites needed",
-        preparing: "Work started",
         waiting: "Awaiting response",
         information: "Information requested",
         denied: "Decision needs follow-up",
@@ -368,6 +369,10 @@ export function prepareJourneyArtifact(
   if (!def) throw new Error("Unknown recovery task.");
   const a = activeAnswers(record.confirmed?.answers ?? {});
   const task = getJourney(record).tasks[id];
+  const assignedRecipient =
+    recipient ||
+    organizationForTask(record, id).name ||
+    (getJourney(record).demo.enabled ? def.recipient : "");
   const docs = record.documents.filter(
     (doc) => def.evidenceTypes.includes(doc.type) && usableDocument(doc, record),
   );
@@ -382,9 +387,9 @@ export function prepareJourneyArtifact(
   );
   const body = [
     `${def.packet}`,
-    "Prepared materials — not an official form or submission.",
+    "Prepared materials: not an official form or submission.",
     "",
-    `To: ${recipient || def.recipient}`,
+    ...(assignedRecipient ? [`To: ${assignedRecipient}`] : []),
     "",
     `I am requesting assistance with ${def.title.toLowerCase()}.`,
     `My goal: ${def.goal}.`,
@@ -415,7 +420,7 @@ export function prepareJourneyArtifact(
   return {
     id: crypto.randomUUID(),
     version: (task?.artifact?.version ?? 0) + 1,
-    recipient: recipient || def.recipient,
+    recipient: assignedRecipient,
     text: body,
     documentIds: docs.map((d) => d.id),
     preparedAt: now.toISOString(),
@@ -559,7 +564,7 @@ export function applyJourneyCommand(
       id: crypto.randomUUID(),
       version: task.artifact.version + 1,
       text: text(raw.text),
-      recipient: text(raw.recipient, 200),
+      recipient: organizationForTask(record, id).name || text(raw.recipient, 200),
       documentIds: documents(raw.documentIds, record),
       approvedAt: undefined,
       receipt: undefined,

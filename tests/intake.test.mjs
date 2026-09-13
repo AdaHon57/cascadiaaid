@@ -284,6 +284,109 @@ function environment() {
     },
   };
 }
+
+test("automation jobs are household scoped, reserved once, and preserve edits made during a submission", async () => {
+  const env = environment();
+  env.AUTOMATION_SERVICE_URL = "https://automation.example.test";
+  env.AUTOMATION_SERVICE_TOKEN = "x".repeat(40);
+  const initial = await session(env);
+  let record = await (
+    await handleIntakeRequest(
+      request("/api/intake", "PUT", initial.cookie, {
+        revision: initial.record.revision,
+        confirm: true,
+        draft: draft({ accommodationHelp: "yes", safeTonight: "no", housingConfirmed: "no" }),
+      }),
+      env,
+    )
+  ).json();
+  const originalFetch = globalThis.fetch;
+  let calls = 0;
+  let jobId;
+  globalThis.fetch = async (url, options) => {
+    assert.ok(String(url).startsWith("https://automation.example.test/jobs/"));
+    calls++;
+    const body = JSON.parse(options.body);
+    jobId ||= body.payload.id;
+    if (body.action === "advance") {
+      const latest = await (
+        await handleIntakeRequest(request("/api/intake", "GET", initial.cookie), env)
+      ).json();
+      const edited = await handleIntakeRequest(
+        request("/api/intake/journey", "PUT", initial.cookie, {
+          kind: "notes",
+          taskId: "temporary-housing",
+          notes: "Changed while AI was working",
+          operationId: "concurrent-note",
+          revision: latest.revision,
+        }),
+        env,
+      );
+      assert.equal(edited.status, 200);
+    }
+    return Response.json({
+      id: jobId,
+      version: body.action === "start" ? 1 : 2,
+      status: body.action === "start" ? "awaiting_authorization" : "submitted",
+      message: "Confirmed result",
+      startedAt: "2026-09-12T12:00:00Z",
+      updatedAt: "2026-09-12T12:01:00Z",
+      ...(body.action !== "start"
+        ? {
+            receipt: {
+              reference: "HOUSING-1",
+              evidence: "Your housing request was received.",
+              url: "https://housing.example.test/receipt",
+              at: "2026-09-12T12:01:00Z",
+            },
+          }
+        : {}),
+    });
+  };
+  try {
+    const start = () =>
+      handleIntakeRequest(
+        request("/api/intake/automation", "PUT", initial.cookie, {
+          action: "start",
+          taskId: "temporary-housing",
+          confirm: true,
+        }),
+        env,
+      );
+    const started = await start();
+    assert.equal(started.status, 200);
+    record = await started.json();
+    assert.equal(record.journey.tasks["temporary-housing"].automation.id, jobId);
+    await start();
+    assert.equal(calls, 1);
+    const other = await session(env);
+    const foreign = await handleIntakeRequest(
+      request("/api/intake/automation", "PUT", other.cookie, {
+        action: "advance",
+        taskId: "temporary-housing",
+        id: jobId,
+      }),
+      env,
+    );
+    assert.equal(foreign.status, 400);
+    assert.equal(calls, 1);
+    const advanced = await handleIntakeRequest(
+      request("/api/intake/automation", "PUT", initial.cookie, {
+        action: "advance",
+        taskId: "temporary-housing",
+      }),
+      env,
+    );
+    assert.equal(advanced.status, 200);
+    record = await advanced.json();
+    const task = record.journey.tasks["temporary-housing"];
+    assert.equal(task.notes, "Changed while AI was working");
+    assert.equal(task.submittedAt, "2026-09-12T12:01:00Z");
+    assert.equal(task.outcome, undefined);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
 const request = (path, method = "GET", cookie, body) =>
   new Request(`http://localhost${path}`, {
     method,

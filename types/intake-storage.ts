@@ -18,6 +18,8 @@ export interface IntakeBucket {
   delete(key: string): Promise<void>;
 }
 export interface IntakeEnvironment {
+  AUTOMATION_SERVICE_URL?: string;
+  AUTOMATION_SERVICE_TOKEN?: string;
   ASSETS?: { fetch(request: Request): Promise<Response> };
   DB: IntakeDatabase;
   DOCUMENTS: IntakeBucket;

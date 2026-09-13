@@ -11,6 +11,7 @@ test("random households fill every applicable question, applications and sample 
     const { draft, documents } = randomIntake(new Date("2026-09-12T12:00:00Z"), random);
     validateDraft(draft);
     assert.equal(draft.stage, 3);
+    assert.equal(draft.answers.condition, "destroyed");
     for (const q of visibleQuestions(draft.answers)) {
       assert.ok(draft.answers[q.id]?.length, q.id);
     }

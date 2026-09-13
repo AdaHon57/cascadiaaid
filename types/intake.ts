@@ -1,5 +1,6 @@
 import type { RecoveryJourney } from "@/types/journey";
 import type { RecoveryCase } from "@/types/recovery-case";
+import type { HouseholdOrganizations } from "@/types/organizations";
 
 /** Missing key = unanswered; explicit unknown/skipped are retained separately. */
 export type IntakeValue = string | string[];
@@ -37,6 +38,7 @@ export interface IntakeDocument {
   conflictAcknowledgment: string;
 }
 export interface IntakeRecord {
+  organizations?: HouseholdOrganizations;
   journey?: RecoveryJourney;
   dashboard?: { skippedStepIds: string[]; activeStepId: string | null };
   id: string;

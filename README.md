@@ -30,21 +30,21 @@ Run `npm run format` to apply formatting.
 
 ## Project structure
 
-- `app/` — App Router pages plus global loading and error boundaries
-- `components/layout/` — shared application chrome
-- `components/ui/` — reusable, accessible interface primitives
-- `types/` — shared domain shapes, including recovery nodes and priority inputs/results
-- `lib/` — recovery engines, image preparation, OpenAI analysis, and result validation
-- `data/` — separate workflow definitions, illustrative edges, sample case facts, and calculated statuses
-- `tests/` — recovery engine and image-analysis checks
-- `docs/image-capture.md` — [image capture, OpenAI setup, fields, and files](docs/image-capture.md)
-- `docs/priority-engine.md` — [scoring explanation and usage](docs/priority-engine.md)
-- `docs/recovery-graph.md` — [recovery definitions, edges, and runtime state](docs/recovery-graph.md)
-- `docs/recovery-household-model.md` — [household fields, all ten rules, evidence, and file guide](docs/recovery-household-model.md)
-- `docs/recovery-status-engine.md` — [status rules, inputs, and usage](docs/recovery-status-engine.md)
-- `docs/recovery-recalculation.md` — [household edits and downstream blocker explanations](docs/recovery-recalculation.md)
-- `docs/support-chat.md` — [continual support chat, retrieval, configuration, and limits](docs/support-chat.md)
-- `api/` — empty extension point
+- `app/`: App Router pages plus global loading and error boundaries
+- `components/layout/`: shared application chrome
+- `components/ui/`: reusable, accessible interface primitives
+- `types/`: shared domain shapes, including recovery nodes and priority inputs/results
+- `lib/`: recovery engines, image preparation, OpenAI analysis, and result validation
+- `data/`: separate workflow definitions, illustrative edges, sample case facts, and calculated statuses
+- `tests/`: recovery engine and image-analysis checks
+- `docs/image-capture.md`: [image capture, OpenAI setup, fields, and files](docs/image-capture.md)
+- `docs/priority-engine.md`: [scoring explanation and usage](docs/priority-engine.md)
+- `docs/recovery-graph.md`: [recovery definitions, edges, and runtime state](docs/recovery-graph.md)
+- `docs/recovery-household-model.md`: [household fields, all ten rules, evidence, and file guide](docs/recovery-household-model.md)
+- `docs/recovery-status-engine.md`: [status rules, inputs, and usage](docs/recovery-status-engine.md)
+- `docs/recovery-recalculation.md`: [household edits and downstream blocker explanations](docs/recovery-recalculation.md)
+- `docs/support-chat.md`: [continual support chat, retrieval, configuration, and limits](docs/support-chat.md)
+- `api/`: empty extension point
 
 ## Environment variables
 
@@ -60,7 +60,7 @@ Recovery engines need no credentials. Both image tools require `OPENAI_API_KEY`,
 
 ## Recovery journey
 
-The shared journey engine now covers all 21 roadmap nodes with milestone-based prerequisites, independent program outcomes, editable packet preparation, PDF/calendar exports, and approved simulated submissions. See [the implementation and API guide](docs/recovery-journey.md). Dashboard step details and Roadmap node selection open the shared task workspace; Demo controls offer confirmed sample scenarios and simulated external events.
+The shared journey engine covers all 21 roadmap nodes with milestone-based prerequisites, independent program outcomes, editable packet preparation, and PDF/calendar exports. Dashboard and Applications include AI handling for application and service requests; demo controls are removed. Roadmap contains only the interactive map, with node highlighting and the moving green arc. See [the journey guide](docs/recovery-journey.md) and [application automation setup and limits](docs/application-automation.md). Real browser automation requires the separate configured service and has been verified against a controlled form, not every agency portal.
 
 ## Scope boundary
 

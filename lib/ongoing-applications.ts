@@ -1,57 +1,31 @@
-import { applicationStatuses } from "@/data/intake-questions";
+import { journeyDefinitions } from "@/lib/recovery-journey";
+import { cleanDraftText } from "@/lib/draft-text";
 import type { IntakeRecord } from "@/types/intake";
 
-const ongoingStatuses = [
-  "preparing",
-  "submitted",
-  "information",
-  "approved",
-  "appealing",
-  "partial",
-];
-
+/** Applications is a view of saved Dashboard drafts, not intake sample entries. */
 export function ongoingApplications(record: IntakeRecord) {
-  return (record.confirmed?.applications ?? []).flatMap((application) => {
-    const stages = ["funds", "appeal", "review", "application"].map((stage) => ({
-      id: `${stage}:${application.id}`,
-      task: record.journey?.tasks[`${stage}:${application.id}`],
-    }));
-    const active = stages.find(
-      ({ task }) =>
-        task &&
-        (task.outcome || task.response || task.submittedAt || task.startedAt || task.artifact),
-    );
+  if (!record.confirmed || !record.journey) return [];
 
-    // Submission is a milestone; receiving aid is the application's final outcome.
+  return journeyDefinitions(record).flatMap((definition) => {
+    const task = record.journey!.tasks[definition.id];
+    const artifact = task?.artifact;
     if (
-      application.status === "received" ||
-      active?.task?.outcome?.kind === "closed" ||
-      stages[0].task?.outcome?.kind === "achieved"
+      !artifact ||
+      artifact.simulated ||
+      !artifact.text.trim() ||
+      task.notApplicable ||
+      task.outcome
     )
       return [];
 
-    const task = active?.task;
-    const status =
-      task?.response ??
-      (active?.id === `appeal:${application.id}`
-        ? "appealing"
-        : ["information", "approved", "denied", "appealing"].includes(application.status)
-          ? application.status
-          : task?.submittedAt
-            ? "submitted"
-            : task?.startedAt || task?.artifact
-              ? "preparing"
-              : application.status);
-    if (!ongoingStatuses.includes(status)) return [];
-
     return [
       {
-        ...application,
-        taskId: active?.id ?? `application:${application.id}`,
-        statusLabel:
-          status === "partial"
-            ? "Partial outcome"
-            : (applicationStatuses.find(([value]) => value === status)?.[1] ?? status),
+        id: definition.id,
+        taskId: definition.id,
+        title: definition.title,
+        organization: artifact.recipient,
+        text: cleanDraftText(artifact.text),
+        statusLabel: task.submittedAt ? "Submitted · follow-up ongoing" : "Email draft",
       },
     ];
   });

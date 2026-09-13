@@ -1,9 +1,9 @@
 import type { PriorityFactors } from "@/types/priority";
+import type { AutomationJob } from "@/types/automation";
 
 export type JourneyStatus =
   | "ready"
   | "blocked"
-  | "preparing"
   | "waiting"
   | "information"
   | "denied"
@@ -25,6 +25,7 @@ export interface JourneyArtifact {
   simulated: boolean;
 }
 export interface JourneyTask {
+  automation?: AutomationJob;
   ratings?: PriorityFactors;
   startedAt?: string;
   submittedAt?: string;

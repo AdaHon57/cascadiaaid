@@ -53,6 +53,7 @@ export const intakeQuestions: IntakeQuestion[] = [
     hint: "Partial information is fine. This is the affected home, not where you are staying now.",
   }),
   text("affectedCity", "City", "Affected home", { stage: 0 }),
+  text("affectedState", "State or territory", "Affected home", { stage: 0 }),
   text("affectedZip", "ZIP code", "Affected home", { stage: 0 }),
   q("addressKnowledge", "Do you know the full affected address?", "Affected home", {
     stage: 0,

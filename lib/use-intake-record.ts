@@ -1,11 +1,45 @@
 "use client";
 import { useEffect, useState } from "react";
 import { intakeRequest } from "@/lib/intake-client";
+import { jsonRequest } from "@/lib/intake-client";
+import { organizationContext } from "@/lib/household-organizations";
 import type { IntakeRecord } from "@/types/intake";
 
 export function useIntakeRecord() {
   const [record, setRecord] = useState<IntakeRecord | null>(null);
   const [error, setError] = useState("");
+  const [organizationError, setOrganizationError] = useState("");
+  const context = record?.confirmed ? organizationContext(record) : "";
+  const savedContext = record?.organizations?.contextKey;
+  const householdId = record?.id;
+  useEffect(() => {
+    if (!context || savedContext === context) return;
+    let cancelled = false;
+    const key = `${householdId}:${context}`;
+    let request = organizationRequests.get(key);
+    if (!request) {
+      request = intakeRequest("/api/intake/organizations", jsonRequest({}));
+      organizationRequests.set(key, request);
+      void request.finally(() => organizationRequests.delete(key)).catch(() => {});
+    }
+    request
+      .then((next) => {
+        if (cancelled) return;
+        setRecord((current) =>
+          current?.id === next.id && current.revision > next.revision ? current : next,
+        );
+        setOrganizationError("");
+      })
+      .catch(() => {
+        if (!cancelled)
+          setOrganizationError(
+            "Could not identify organizations. Use Find organization in your step to retry.",
+          );
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [context, savedContext, householdId]);
   useEffect(() => {
     let controller: AbortController | undefined;
     const refresh = () => {
@@ -41,5 +75,7 @@ export function useIntakeRecord() {
       window.clearInterval(interval);
     };
   }, []);
-  return { record, error, setRecord };
+  return { record, error, organizationError, setRecord };
 }
+
+const organizationRequests = new Map<string, Promise<IntakeRecord>>();

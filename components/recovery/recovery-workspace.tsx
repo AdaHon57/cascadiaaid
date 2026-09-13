@@ -3,22 +3,16 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useIntakeRecord } from "@/lib/use-intake-record";
-import {
-  baseTaskId,
-  currentJourneyTask,
-  evaluateJourney,
-  journeyBadges,
-} from "@/lib/recovery-journey";
+import { useDashboardFocus } from "@/lib/use-dashboard-focus";
+import { baseTaskId, currentJourneyTask, evaluateJourney } from "@/lib/recovery-journey";
 import { intakeRequest, jsonRequest } from "@/lib/intake-client";
 import type { IntakeRecord } from "@/types/intake";
-import { DemoControls } from "./demo-controls";
+import { journeyConnections } from "@/data/journey-connections";
 import { TaskWorkspace } from "./task-workspace";
-import { RecoveryRoadmap } from "@/components/dashboard/recovery-roadmap";
 
 const statusLabels = {
   ready: "Ready to work",
   blocked: "Prerequisites needed",
-  preparing: "Work started",
   waiting: "Awaiting response",
   information: "Follow-up needed",
   denied: "Decision needs follow-up",
@@ -29,12 +23,11 @@ const statusLabels = {
   "not-applicable": "Not applicable",
 };
 
-export function RecoveryWorkspace({ view }: { view: "dashboard" | "roadmap" | "applications" }) {
+export function RecoveryWorkspace({ view }: { view: "dashboard" | "applications" }) {
   const { record, error, setRecord } = useIntakeRecord();
+  const dashboardFocus = useDashboardFocus(record?.id);
   const [selected, setSelected] = useState<string | null>(null);
-  const [showAll, setShowAll] = useState(false);
   const [busy, setBusy] = useState(false);
-  const [saveError, setSaveError] = useState("");
   const [dirty, setDirty] = useState(false);
   const pending = useRef(false);
   const latestRecord = useRef(record);
@@ -55,7 +48,6 @@ export function RecoveryWorkspace({ view }: { view: "dashboard" | "roadmap" | "a
       throw new Error("Please wait for the current save.");
     pending.current = true;
     setBusy(true);
-    setSaveError("");
     try {
       const next = await operation(latestRecord.current);
       latestRecord.current = next;
@@ -63,7 +55,6 @@ export function RecoveryWorkspace({ view }: { view: "dashboard" | "roadmap" | "a
       window.dispatchEvent(new Event("cascadia-record-changed"));
       return next;
     } catch (cause) {
-      setSaveError(cause instanceof Error ? cause.message : "Could not save your changes.");
       try {
         const fresh = await intakeRequest();
         latestRecord.current = fresh;
@@ -81,7 +72,11 @@ export function RecoveryWorkspace({ view }: { view: "dashboard" | "roadmap" | "a
     if (typeof fields.taskId === "string") setSelected(fields.taskId);
     return mutate((current) =>
       intakeRequest(
-        "/api/intake/journey",
+        fields.kind === "automation"
+          ? "/api/intake/automation"
+          : fields.kind === "organizations"
+            ? "/api/intake/organizations"
+            : "/api/intake/journey",
         jsonRequest({ ...fields, revision: current.revision, operationId: crypto.randomUUID() }),
       ),
     );
@@ -107,37 +102,38 @@ export function RecoveryWorkspace({ view }: { view: "dashboard" | "roadmap" | "a
     window.history.replaceState(null, "", `#${encodeURIComponent(id)}`);
     requestAnimationFrame(() => {
       heading.current?.focus({ preventScroll: true });
-      if (view === "roadmap") heading.current?.scrollIntoView({ block: "start" });
     });
   }
-  if (!record)
-    return <p role={error ? "alert" : "status"}>{error || "Loading your recovery steps…"}</p>;
-  const tasks = evaluateJourney(record);
-  const current = currentJourneyTask(record, tasks);
+  const tasks = record ? evaluateJourney(record) : [];
+  const current = record ? currentJourneyTask(record, tasks) : null;
+  const selectedTask = selected ?? (view === "dashboard" ? dashboardFocus.taskId : null);
   const completed = tasks.filter((t) => t.status === "achieved").length;
   const closed = tasks.filter((t) => t.status === "closed").length;
   const applicable = tasks.filter((t) => t.status !== "not-applicable").length;
   const visible = tasks.filter(
     (t) =>
       (view !== "applications" ||
-        ["assistance", "application", "review", "appeal", "funds"].includes(
-          baseTaskId(t.definition.id),
-        )) &&
-      (showAll ||
-        t.definition.id === selected ||
+        journeyConnections[baseTaskId(t.definition.id)]?.applicationRelated) &&
+      (t.definition.id === selectedTask ||
         !["achieved", "closed", "not-applicable"].includes(t.status)),
   );
   const requested =
-    (view === "roadmap" ? tasks : visible).find((t) => t.definition.id === selected) ??
-    (view === "roadmap" ? tasks : visible).find((t) => baseTaskId(t.definition.id) === selected);
+    visible.find((t) => t.definition.id === selectedTask) ??
+    visible.find((t) => baseTaskId(t.definition.id) === selectedTask);
   const focused =
     requested ?? visible.find((t) => t.definition.id === current?.definition.id) ?? visible[0];
   const focusIndex = visible.findIndex((t) => t.definition.id === focused?.definition.id);
+  const focusedId = focused?.definition.id ?? null;
+  const { ready: focusReady, taskId: savedFocus, save: saveFocus } = dashboardFocus;
+  useEffect(() => {
+    if (view === "dashboard" && focusReady && focusedId !== savedFocus) saveFocus(focusedId);
+  }, [view, focusReady, focusedId, savedFocus, saveFocus]);
+  if (!record) return error ? null : <p role="status">Loading your recovery steps…</p>;
   return (
     <div className="space-y-6">
       <header>
         <h1 className="text-3xl font-semibold tracking-tight">
-          {view === "roadmap" ? "Roadmap" : view === "applications" ? "Applications" : "Dashboard"}
+          {view === "applications" ? "Applications" : "Dashboard"}
         </h1>
         <p className="mt-2 text-slate-600">
           {completed} of {applicable} goals achieved
@@ -157,17 +153,6 @@ export function RecoveryWorkspace({ view }: { view: "dashboard" | "roadmap" | "a
           style={{ width: `${applicable ? (completed / applicable) * 100 : 0}%` }}
         />
       </div>
-      {error && (
-        <p role="alert" className="rounded-lg border border-red-300 bg-red-50 p-3 text-red-800">
-          {error}
-        </p>
-      )}
-      {saveError && (
-        <p role="alert" className="rounded-lg bg-red-50 p-3 text-red-800">
-          {saveError}
-        </p>
-      )}
-      <DemoControls record={record} command={command} mutate={mutate} busy={busy} />
       {!record.confirmed && (
         <div className="rounded-xl border bg-white p-5">
           <h2 className="font-semibold">Start with the information you have</h2>
@@ -176,140 +161,87 @@ export function RecoveryWorkspace({ view }: { view: "dashboard" | "roadmap" | "a
           </Link>
         </div>
       )}
-      {view === "roadmap" ? (
-        <div className="space-y-5">
-          <RecoveryRoadmap
-            badges={journeyBadges(record)}
-            selected={focused ? baseTaskId(focused.definition.id) : null}
-            onSelect={choose}
-            activeNodeId={current ? baseTaskId(current.definition.id) : undefined}
-          />
-          {focused && (
-            <section
-              className="mx-auto max-w-3xl rounded-2xl border bg-white p-5 sm:p-8"
-              aria-labelledby="roadmap-workspace-title"
+      <div className="mx-auto max-w-3xl space-y-5">
+        {!focused ? (
+          <p className="rounded-xl border bg-white p-6">No open tasks in this view.</p>
+        ) : (
+          <div className="step-focus-layout">
+            <button
+              type="button"
+              className="step-navigation"
+              aria-label="Previous step"
+              disabled={focusIndex <= 0}
+              onClick={() => choose(visible[focusIndex - 1].definition.id)}
             >
-              <p className="text-sm text-slate-500">{statusLabels[focused.status]}</p>
+              <span aria-hidden="true" className="step-chevron step-chevron-up" />
+            </button>
+            <div className="step-preview">
+              {focusIndex > 0 ? (
+                <button type="button" onClick={() => choose(visible[focusIndex - 1].definition.id)}>
+                  <span className="text-xs">Step {focusIndex}</span>
+                  <span className="block truncate font-medium">
+                    {visible[focusIndex - 1].definition.title}
+                  </span>
+                </button>
+              ) : (
+                <p className="text-sm">Beginning of your steps</p>
+              )}
+            </div>
+            <section
+              aria-labelledby="focused-step-title"
+              className="rounded-2xl border bg-white p-5 shadow-sm sm:p-8"
+            >
+              <div className="mb-4 flex flex-wrap justify-between gap-2 text-xs font-semibold text-slate-500">
+                <span>
+                  Step {focusIndex + 1} of {visible.length}
+                </span>
+                <span>{statusLabels[focused.status]}</span>
+              </div>
               <h2
                 ref={heading}
                 tabIndex={-1}
-                id="roadmap-workspace-title"
-                className="mt-2 text-2xl font-semibold focus:outline-none"
+                id="focused-step-title"
+                className="text-2xl font-semibold tracking-tight focus:outline-none"
               >
                 {focused.definition.title}
               </h2>
-              <p className="my-4 text-slate-600">{focused.definition.goal}</p>
-              <TaskWorkspace
-                key={`${record.id}:${focused.definition.id}`}
-                record={record}
-                item={focused}
-                command={command}
-                busy={busy}
-                onChoose={choose}
-                onDirtyChange={setDirty}
-              />
+              <p className="mt-3 leading-7 text-slate-600">{focused.definition.goal}</p>
+              <div id="focused-step-details" className="mt-6 border-t pt-6">
+                <TaskWorkspace
+                  key={`${record.id}:${focused.definition.id}`}
+                  record={record}
+                  item={focused}
+                  command={command}
+                  busy={busy}
+                  onChoose={choose}
+                  onDirtyChange={setDirty}
+                />
+              </div>
             </section>
-          )}
-        </div>
-      ) : (
-        <div className="mx-auto max-w-3xl space-y-5">
-          <label className="flex min-h-11 items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={showAll}
-              onChange={(event) => setShowAll(event.target.checked)}
-            />
-            Show achieved, closed, and not-applicable tasks
-          </label>
-          {!focused ? (
-            <p className="rounded-xl border bg-white p-6">
-              No open tasks in this view. Show all tasks to review outcomes.
-            </p>
-          ) : (
-            <div className="step-focus-layout">
-              <button
-                type="button"
-                className="step-navigation"
-                aria-label="Previous step"
-                disabled={focusIndex <= 0}
-                onClick={() => choose(visible[focusIndex - 1].definition.id)}
-              >
-                <span aria-hidden="true" className="step-chevron step-chevron-up" />
-              </button>
-              <div className="step-preview">
-                {focusIndex > 0 ? (
-                  <button
-                    type="button"
-                    onClick={() => choose(visible[focusIndex - 1].definition.id)}
-                  >
-                    <span className="text-xs">Step {focusIndex}</span>
-                    <span className="block truncate font-medium">
-                      {visible[focusIndex - 1].definition.title}
-                    </span>
-                  </button>
-                ) : (
-                  <p className="text-sm">Beginning of your steps</p>
-                )}
-              </div>
-              <section
-                aria-labelledby="focused-step-title"
-                className="rounded-2xl border bg-white p-5 shadow-sm sm:p-8"
-              >
-                <div className="mb-4 flex flex-wrap justify-between gap-2 text-xs font-semibold text-slate-500">
-                  <span>
-                    Step {focusIndex + 1} of {visible.length}
+            <div className="step-preview">
+              {focusIndex < visible.length - 1 ? (
+                <button type="button" onClick={() => choose(visible[focusIndex + 1].definition.id)}>
+                  <span className="text-xs">Step {focusIndex + 2}</span>
+                  <span className="block truncate font-medium">
+                    {visible[focusIndex + 1].definition.title}
                   </span>
-                  <span>{statusLabels[focused.status]}</span>
-                </div>
-                <h2
-                  ref={heading}
-                  tabIndex={-1}
-                  id="focused-step-title"
-                  className="text-2xl font-semibold tracking-tight focus:outline-none"
-                >
-                  {focused.definition.title}
-                </h2>
-                <p className="mt-3 leading-7 text-slate-600">{focused.definition.goal}</p>
-                <div id="focused-step-details" className="mt-6 border-t pt-6">
-                  <TaskWorkspace
-                    key={`${record.id}:${focused.definition.id}`}
-                    record={record}
-                    item={focused}
-                    command={command}
-                    busy={busy}
-                    onChoose={choose}
-                    onDirtyChange={setDirty}
-                  />
-                </div>
-              </section>
-              <div className="step-preview">
-                {focusIndex < visible.length - 1 ? (
-                  <button
-                    type="button"
-                    onClick={() => choose(visible[focusIndex + 1].definition.id)}
-                  >
-                    <span className="text-xs">Step {focusIndex + 2}</span>
-                    <span className="block truncate font-medium">
-                      {visible[focusIndex + 1].definition.title}
-                    </span>
-                  </button>
-                ) : (
-                  <p className="text-sm">End of your steps</p>
-                )}
-              </div>
-              <button
-                type="button"
-                className="step-navigation"
-                aria-label="Next step"
-                disabled={focusIndex >= visible.length - 1}
-                onClick={() => choose(visible[focusIndex + 1].definition.id)}
-              >
-                <span aria-hidden="true" className="step-chevron" />
-              </button>
+                </button>
+              ) : (
+                <p className="text-sm">End of your steps</p>
+              )}
             </div>
-          )}
-        </div>
-      )}
+            <button
+              type="button"
+              className="step-navigation"
+              aria-label="Next step"
+              disabled={focusIndex >= visible.length - 1}
+              onClick={() => choose(visible[focusIndex + 1].definition.id)}
+            >
+              <span aria-hidden="true" className="step-chevron" />
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

@@ -11,6 +11,16 @@ import { emptyDocumentFields } from "@/types/intake";
 import type { IntakeRecord } from "@/types/intake";
 import type { IntakeEnvironment } from "@/types/intake-storage";
 import { randomIntake, testDocumentPreview } from "@/lib/random-intake";
+import { resolveOrganizations } from "@/lib/resolve-organizations";
+import { assignOrganizations, organizationContext } from "@/lib/household-organizations";
+import { cleanDraftText } from "@/lib/draft-text";
+import {
+  automationConfig,
+  automationPayload,
+  automationTask,
+  mergeAutomation,
+  runnerRequest,
+} from "@/lib/journey-automation";
 const cookieName = "cascadia_household";
 const headers = { "Cache-Control": "no-store, private", "X-Content-Type-Options": "nosniff" };
 function reply(data: unknown, status = 200, cookie?: string) {
@@ -80,7 +90,25 @@ export async function handleIntakeRequest(
     }
     const record = JSON.parse(row!.payload) as IntakeRecord & { deleting?: boolean };
     record.revision = row!.revision;
+    for (const task of Object.values(record.journey?.tasks ?? {})) {
+      if (task.artifact) task.artifact.text = cleanDraftText(task.artifact.text);
+    }
     if (url.pathname === "/api/intake" && request.method === "DELETE") {
+      // Stop browser work and erase its copied documents before deleting the household.
+      for (const task of Object.values(getJourney(record).tasks)) {
+        if (!task.automation) continue;
+        try {
+          await runnerRequest(env, task.automation.id, { action: "erase" });
+        } catch {
+          return reply(
+            {
+              error:
+                "Could not delete the automation session yet. Try wiping your data again when the service is reachable.",
+            },
+            503,
+          );
+        }
+      }
       // Lock the current revision before removing images. Concurrent saves and
       // uploads lose their revision check; retries can finish a partial deletion.
       if (!record.deleting) {
@@ -116,6 +144,8 @@ export async function handleIntakeRequest(
       );
     if (url.pathname === "/api/intake" && request.method === "GET")
       return reply(record, 200, cookie);
+    if (url.pathname === "/api/intake/automation" && request.method === "GET")
+      return reply({ available: !!automationConfig(env) });
     const documentId = url.pathname.match(/^\/api\/intake\/documents\/([a-f0-9-]+)$/)?.[1];
     if (documentId && request.method === "GET") {
       if (!record.documents.some((d) => d.id === documentId))
@@ -264,6 +294,121 @@ export async function handleIntakeRequest(
     const body = JSON.parse(raw);
     if (!body || typeof body !== "object" || Array.isArray(body))
       return reply({ error: "Invalid request body." }, 400);
+    if (url.pathname === "/api/intake/organizations" && request.method === "PUT") {
+      if (!record.confirmed) return reply(record);
+      const basis = body.refresh === true ? { ...record, organizations: undefined } : record;
+      let organizations;
+      try {
+        organizations = await resolveOrganizations(basis, assistant, request.signal);
+      } catch {
+        return reply(
+          { error: "Could not identify the responsible organizations yet. Try again shortly." },
+          503,
+        );
+      }
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const latest = await env.DB.prepare(
+          "SELECT payload, revision FROM intake_cases WHERE session_hash = ?",
+        )
+          .bind(key)
+          .first<{ payload: string; revision: number }>();
+        if (!latest) return reply({ error: "Household session ended." }, 409);
+        const fresh = { ...JSON.parse(latest.payload), revision: latest.revision };
+        if (fresh.deleting) return reply({ error: "Household deletion is in progress." }, 409);
+        if (organizationContext(fresh) !== organizations.contextKey) return reply(fresh);
+        if (JSON.stringify(fresh.organizations) === JSON.stringify(organizations))
+          return reply(fresh);
+        const saved = await persist(assignOrganizations(fresh, organizations), latest.revision);
+        if (saved.status !== 409) return saved;
+      }
+      return reply(
+        { error: "Household information changed. Refresh to see its organizations." },
+        409,
+      );
+    }
+    if (url.pathname === "/api/intake/automation" && request.method === "PUT") {
+      if (!automationConfig(env))
+        return reply({ error: "Application automation is not connected yet." }, 503);
+      const taskId = typeof body.taskId === "string" ? body.taskId : "";
+      if (!journeyDefinitions(record).some((task) => task.id === taskId))
+        return reply({ error: "Unknown recovery task." }, 400);
+      const actions = ["start", "advance", "authorize", "answer", "resume", "cancel", "status"];
+      if (!actions.includes(body.action))
+        return reply({ error: "Invalid automation action." }, 400);
+      let current = record;
+      let job = getJourney(current).tasks[taskId]?.automation;
+      let payload;
+      if (body.action === "start") {
+        if (body.confirm !== true)
+          return reply(
+            { error: "Confirm that AI may handle this request using your saved information." },
+            400,
+          );
+        if (job) return reply(current); // A job can never silently create a duplicate.
+        automationTask(current, taskId);
+        payload = await automationPayload(current, taskId, crypto.randomUUID(), env);
+        current = structuredClone(current);
+        current.journey = getJourney(current);
+        const task = current.journey.tasks[taskId] ?? { notes: "" };
+        job = {
+          id: payload.id,
+          version: 0,
+          status: "discovering",
+          message: "Finding the official process…",
+          startedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+        task.automation = job;
+        current.journey.tasks[taskId] = task;
+        const reservation = await persist(current, current.revision);
+        if (!reservation.ok) return reservation;
+        current = (await reservation.json()) as IntakeRecord;
+      }
+      if (!job) return reply({ error: "Start this task before continuing automation." }, 400);
+      let result;
+      try {
+        // Recover a reservation whose first service request was interrupted. The
+        // runner's start is idempotent and never replaces an existing browser job.
+        if (!payload && job.version === 0 && job.status === "discovering") {
+          const reservedPayload = await automationPayload(current, taskId, job.id, env);
+          await runnerRequest(env, job.id, { action: "start", payload: reservedPayload });
+        }
+        result = await runnerRequest(env, job.id, {
+          action: body.action,
+          expectedVersion: job.version,
+          ...(payload ? { payload } : {}),
+          url: body.url,
+          answer: body.answer,
+        });
+      } catch {
+        return reply(
+          {
+            error:
+              "Could not reach automation. Your job is saved; refresh its status before trying again.",
+          },
+          503,
+        );
+      }
+      // Merge just this job into the latest household so concurrent edits survive.
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const latest = await env.DB.prepare(
+          "SELECT payload, revision FROM intake_cases WHERE session_hash = ?",
+        )
+          .bind(key)
+          .first<{ payload: string; revision: number }>();
+        if (!latest) return reply({ error: "Household session ended." }, 409);
+        const fresh = { ...JSON.parse(latest.payload), revision: latest.revision };
+        if (fresh.deleting) return reply({ error: "Household deletion is in progress." }, 409);
+        const merged = mergeAutomation(fresh, taskId, result);
+        if (merged === fresh) return reply(fresh);
+        const saved = await persist(merged, latest.revision);
+        if (saved.status !== 409) return saved;
+      }
+      return reply(
+        { error: "Your household changed. Refresh to recover the saved automation result." },
+        409,
+      );
+    }
     if (
       url.pathname === "/api/intake/journey" &&
       request.method === "PUT" &&
@@ -288,6 +433,14 @@ export async function handleIntakeRequest(
       return persist(next, body.revision);
     }
     if (url.pathname === "/api/intake/scenario" && request.method === "POST") {
+      if (Object.values(getJourney(record).tasks).some((task) => task.automation))
+        return reply(
+          {
+            error:
+              "Wipe this household's data before replacing a household with saved automation jobs.",
+          },
+          409,
+        );
       if (body.confirm !== true || !["owner", "renter"].includes(body.scenario))
         return reply({ error: "Confirm the fictional scenario replacement first." }, 400);
       return persist(loadJourneyDemo(record, body.scenario), body.revision);
@@ -296,6 +449,14 @@ export async function handleIntakeRequest(
       return persist(updateDashboardStep(record, body.action, body.stepId), body.revision);
     }
     if (url.pathname === "/api/intake/randomize" && request.method === "POST") {
+      if (Object.values(getJourney(record).tasks).some((task) => task.automation))
+        return reply(
+          {
+            error:
+              "Wipe this household's data before replacing a household with saved automation jobs.",
+          },
+          409,
+        );
       const sample = randomIntake();
       record.dashboard = undefined;
       record.journey = undefined;

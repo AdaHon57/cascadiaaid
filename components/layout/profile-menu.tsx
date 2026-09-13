@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useHeaderMenu } from "./use-header-menu";
+import { intakeRequest } from "@/lib/intake-client";
 import { SUPPORT_SESSION_KEY } from "@/types/support-chat";
 
 export function ProfileMenu() {
@@ -9,6 +10,31 @@ export function ProfileMenu() {
   const dialog = useRef<HTMLDialogElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+
+  const pending = useRef(false);
+  const [randomizing, setRandomizing] = useState(false);
+  const [randomizeError, setRandomizeError] = useState("");
+  async function randomize() {
+    if (pending.current) return;
+    pending.current = true;
+    setRandomizing(true);
+    setRandomizeError("");
+    try {
+      const record = await intakeRequest();
+      await intakeRequest("/api/intake/randomize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ revision: record.revision }),
+      });
+      window.location.replace("/intake");
+    } catch (cause) {
+      setRandomizeError(
+        cause instanceof Error ? cause.message : "Could not randomize data. Try again.",
+      );
+      pending.current = false;
+      setRandomizing(false);
+    }
+  }
 
   async function wipeData() {
     if (busy) return;
@@ -60,8 +86,34 @@ export function ProfileMenu() {
               <span aria-hidden="true">×</span>
             </button>
           </div>
+          <div className="mt-4 border-t pt-3">
+            <button
+              type="button"
+              disabled={busy || randomizing}
+              onClick={() => void randomize()}
+              aria-describedby="randomize-description"
+              className="min-h-11 w-full rounded-lg px-3 py-2 text-left font-medium text-teal-800 hover:bg-teal-50 focus-visible:outline-teal-600 disabled:opacity-50"
+            >
+              {randomizing ? "Randomizing…" : "Randomize data"}
+            </button>
+            <p id="randomize-description" className="mt-1 text-xs leading-5 text-slate-500">
+              For testing: replaces saved answers and applications, fills all 3 stages with sample
+              data, and updates your recovery map. Existing uploads are kept.
+            </p>
+            {randomizing && (
+              <p role="status" className="mt-2 text-xs">
+                Filling all 3 stages…
+              </p>
+            )}
+            {randomizeError && (
+              <p role="alert" className="mt-2 text-xs text-red-700">
+                {randomizeError}
+              </p>
+            )}
+          </div>
           <button
             type="button"
+            disabled={randomizing}
             onClick={() => {
               close(false);
               dialog.current?.showModal();

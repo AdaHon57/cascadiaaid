@@ -8,7 +8,7 @@ eligibility or legal workflow.
 ## Shared task workspace
 
 Dashboard keeps focused arrow navigation with three always-visible, goal-specific
-steps. There is no details toggle. Roadmap and Applications use the same steps:
+steps. There is no details toggle. Applications uses the same steps:
 prepare a draft, review and take the action, then confirm the outcome with evidence.
 `data/journey-steps.ts` supplies concrete actions for all 21 goals. Draft editing
 appears when preparing or reviewing a draft. Relevant reviewed documents are
@@ -16,7 +16,9 @@ selected automatically; the user can change them. Intake links open household
 information or the document stage directly. Ratings, history, and grouped workspace
 forms are no longer shown in the steps; saved data remains intact.
 Switching steps warns about unsaved edits. The moving green arc follows the
-current task, independent of the selected node.
+current task, independent of the selected node. Roadmap contains only the map; node
+selection highlights the node without opening a workspace. Demo controls, intake
+prompts, and other supplementary panels must not be added to Roadmap.
 
 Demo controls enable simulations and advance the demo clock. Loading either the
 homeowner or renter scenario requires confirmation before replacing answers,

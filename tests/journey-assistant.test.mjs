@@ -52,7 +52,7 @@ test("AI rewrites only text and cannot approve, deliver, or replace attachments"
   assert.equal(payload.model, "configured-model");
   assert.deepEqual(payload.input, [{ role: "user", content: artifact.text }]);
   assert.equal(result.preparation, "ai");
-  assert.match(result.text, /AI draft — review before use. Not submitted./);
+  assert.equal(result.text, "Please help arrange accommodation. Move-in date: [date].");
   assert.deepEqual(result.documentIds, artifact.documentIds);
   assert.equal(result.recipient, artifact.recipient);
   assert.equal(result.id, artifact.id);

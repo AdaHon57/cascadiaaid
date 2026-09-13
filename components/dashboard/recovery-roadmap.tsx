@@ -12,21 +12,24 @@ import {
 } from "@/lib/recovery-roadmap";
 
 const badgeStyles = {
-  ready: "border-teal-600 bg-teal-50 text-teal-950",
+  ready: "border-slate-300 bg-white text-slate-800",
   waiting: "border-blue-400 bg-blue-50 text-blue-950",
   blocked: "border-amber-400 bg-amber-50 text-amber-950",
   complete: "border-emerald-400 bg-emerald-50 text-emerald-950",
   unknown: "border-slate-300 bg-white text-slate-700",
+  "not-applicable": "border-amber-400 bg-amber-50 text-amber-950",
 };
 export function RecoveryRoadmap({
   badges,
   onSelect,
   selected,
   activeNodeId,
+  organizations,
 }: {
   badges?: Record<string, MapBadge>;
   selected?: string | null;
   activeNodeId?: string;
+  organizations?: Record<string, string>;
   onSelect?: (nodeId: string) => void;
 }) {
   const viewport = useRef<HTMLDivElement>(null);
@@ -40,7 +43,7 @@ export function RecoveryRoadmap({
     return () => observer.disconnect();
   }, []);
 
-  const scale = Math.max(0.85, Math.min(1, availableWidth / roadmapSize.width));
+  const scale = Math.min(1, availableWidth / roadmapSize.width);
 
   return (
     <section
@@ -97,6 +100,14 @@ export function RecoveryRoadmap({
                       aria-label={`${node.label || "Tax outcome"}${badges?.[node.id] ? `: ${badges[node.id].label}` : ""}`}
                     >
                       {node.label || (badges ? "Tax adjustment / refund" : "")}
+                      {organizations?.[node.id] && (
+                        <span
+                          className="max-w-full truncate text-[10px] leading-3 font-medium"
+                          title={organizations[node.id]}
+                        >
+                          {organizations[node.id]}
+                        </span>
+                      )}
                       {badges?.[node.id] && (
                         <span className="text-[11px] leading-4 font-medium">
                           {badges[node.id].label}
@@ -145,22 +156,10 @@ export function RecoveryRoadmap({
                   stroke="#64748b"
                   strokeWidth="1.5"
                   strokeLinejoin="round"
-                  strokeDasharray={edge.conditional ? "5 5" : undefined}
                   markerEnd="url(#roadmap-arrow)"
                 />
               ))}
             </svg>
-            {roadmapEdges
-              .filter((edge) => edge.label && edge.labelAt)
-              .map((edge) => (
-                <span
-                  key={`${edge.from}-${edge.to}-label`}
-                  className="absolute z-20 max-w-[210px] -translate-x-1/2 -translate-y-1/2 rounded bg-white px-2 py-1 text-center text-xs leading-4 text-slate-600"
-                  style={{ left: edge.labelAt![0], top: edge.labelAt![1] }}
-                >
-                  {edge.label}
-                </span>
-              ))}
           </div>
         </div>
       </div>
@@ -169,7 +168,6 @@ export function RecoveryRoadmap({
           <li key={`${edge.from}-${edge.to}`}>
             {roadmapNodes.find((node) => node.id === edge.from)?.label} →{" "}
             {roadmapNodes.find((node) => node.id === edge.to)?.label}
-            {edge.label ? ` (${edge.label})` : ""}
           </li>
         ))}
       </ul>

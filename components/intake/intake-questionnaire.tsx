@@ -58,7 +58,7 @@ export function IntakeQuestionnaire() {
           setError("");
           return result;
         } catch (e) {
-          setSaveStatus("Not saved — keep this page open");
+          setSaveStatus("Not saved: keep this page open");
           setError(e instanceof Error ? e.message : "Save failed.");
           throw e;
         }
@@ -142,14 +142,6 @@ export function IntakeQuestionnaire() {
       <div className="space-y-2">
         <p className="text-sm font-semibold text-teal-700">Spokane wildfire recovery</p>
         <h1 className="text-3xl font-semibold tracking-tight">Let’s work out your next steps</h1>
-        <p className="text-slate-600">
-          Answer what you know. You can skip questions and edit later. No SSNs, banking credentials
-          or ID numbers are needed.
-        </p>
-        <p className="text-xs text-slate-500">
-          Progress is saved privately. Return in this browser to resume; clearing its cookies
-          removes access to this household’s saved intake.
-        </p>
       </div>
       <nav aria-label="Intake stages" className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {stages.map((label, i) => (
@@ -311,7 +303,7 @@ export function IntakeQuestionnaire() {
                 <ul className="space-y-2 text-sm">
                   {record.documents.map((doc) => (
                     <li key={doc.id}>
-                      {documentTypes.find(([id]) => id === doc.type)?.[1]} — Uploaded;{" "}
+                      {documentTypes.find(([id]) => id === doc.type)?.[1]}: Uploaded;{" "}
                       {doc.confirmedAt ? "information confirmed" : "information not confirmed"};
                       recipient acceptance: {doc.recipientStatus}.
                       {documentConflicts(doc, draft.answers, record.documents).length > 0 && (

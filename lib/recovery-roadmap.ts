@@ -111,13 +111,13 @@ export interface RoadmapEdge {
   toAnchor?: Anchor;
   toOffset?: Point;
   via?: Point[];
-  label?: string;
-  labelAt?: Point;
-  conditional?: boolean;
 }
 
 export const roadmapEdges: RoadmapEdge[] = [
   { from: "temporary-housing", to: "stable-housing" },
+  { from: "damage", to: "identity" },
+  { from: "identity", to: "occupancy" },
+  { from: "occupancy", to: "evidence" },
   { from: "claim", to: "claim-outcome" },
   { from: "assistance", to: "application" },
   {
@@ -125,16 +125,11 @@ export const roadmapEdges: RoadmapEdge[] = [
     to: "application",
     fromAnchor: "right",
     toAnchor: "left",
-    label: "supports",
-    labelAt: [710, 598],
   },
   { from: "application", to: "review" },
   {
     from: "review",
     to: "appeal",
-    label: "If follow-up needed",
-    labelAt: [990, 870],
-    conditional: true,
   },
   {
     from: "appeal",
@@ -155,17 +150,11 @@ export const roadmapEdges: RoadmapEdge[] = [
       [850, 788],
       [850, 1118],
     ],
-    label: "If approved",
-    labelAt: [850, 1040],
-    conditional: true,
   },
   { from: "hazards", to: "cleanup" },
   {
     from: "cleanup",
     to: "permits",
-    label: "Site evidence only where required",
-    labelAt: [1270, 415],
-    conditional: true,
   },
   { from: "permits", to: "rebuilding" },
   { from: "rebuilding", to: "safe-property" },

@@ -1,4 +1,5 @@
 import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { cleanDraftText } from "@/lib/draft-text";
 import fontkit from "@pdf-lib/fontkit";
 import type { JourneyArtifact } from "@/types/journey";
 
@@ -8,7 +9,7 @@ export async function recoveryPacketPdf(
   fontBytes?: Uint8Array,
 ) {
   const pdf = await PDFDocument.create();
-  pdf.setTitle("Cascadia Aid — recovery packet");
+  pdf.setTitle("Cascadia Aid: recovery packet");
   pdf.setSubject("Prepared materials, not an official form or submission");
   pdf.registerFontkit(fontkit);
   const font = fontBytes
@@ -39,8 +40,8 @@ export async function recoveryPacketPdf(
   line("CASCADIA AID", 18);
   line(
     artifact.simulated
-      ? "DEMONSTRATION — simulated records / delivery"
-      : "Prepared materials — not submitted",
+      ? "DEMONSTRATION: simulated records / delivery"
+      : "Prepared materials: not submitted",
     10,
   );
   line(`Packet version ${artifact.version} | ${artifact.preparedAt.slice(0, 10)}`, 9);
@@ -70,12 +71,12 @@ export async function recoveryPacketPdf(
     }
     line(current);
   };
-  for (const paragraph of artifact.text.split(/\r?\n/)) wrap(paragraph);
+  for (const paragraph of cleanDraftText(artifact.text).split(/\r?\n/)) wrap(paragraph);
   nextPage();
   line("Supporting documents", 16);
   if (!attachments.length) line("No attachments selected.");
   for (const doc of attachments) {
-    wrap(`${doc.type} — ${doc.id}${doc.simulated ? " — SIMULATED" : ""}`);
+    wrap(`${doc.type}: ${doc.id}${doc.simulated ? ": SIMULATED" : ""}`);
     if (doc.bytes) {
       const image = await pdf.embedJpg(doc.bytes);
       nextPage();
@@ -94,9 +95,13 @@ export async function recoveryPacketPdf(
       wrap("Fictional evidence reference for demonstration only; no agency document is attached.");
   }
   // Preserve exact Unicode source, including glyphs unavailable in the display font.
-  await pdf.attach(new TextEncoder().encode(artifact.text), "packet-original-text.txt", {
-    mimeType: "text/plain;charset=utf-8",
-  });
+  await pdf.attach(
+    new TextEncoder().encode(cleanDraftText(artifact.text)),
+    "packet-original-text.txt",
+    {
+      mimeType: "text/plain;charset=utf-8",
+    },
+  );
   const pages = pdf.getPages();
   pages.forEach((p, index) =>
     p.drawText(`Prepared materials | Page ${index + 1} of ${pages.length}`, {

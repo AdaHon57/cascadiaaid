@@ -16,9 +16,10 @@ export function randomIntake(
   const text: Record<string, string> = {
     affectedStreet: `${100 + Math.floor(random() * 8900)} Example Lane`,
     affectedCity: "Spokane",
+    affectedState: "Washington",
     affectedZip: "99201",
     affectedApproximateDate: date(-30),
-    currentLocation: "Spokane — temporary accommodation (test data)",
+    currentLocation: "Spokane: temporary accommodation (test data)",
     householdSize: String(1 + Math.floor(random() * 6)),
     placementNeeds: pick(["Space for one pet", "Step-free access", "No special placement needs"]),
     insurerName: "Example Insurance (test data)",
@@ -49,7 +50,7 @@ export function randomIntake(
     relationship: pick(["owner", "renter"]),
     mainHome: "yes",
     affected: ["home", "belongings"],
-    condition: pick(["damaged", "unlivable", "destroyed"]),
+    condition: "destroyed",
     safeTonight: "yes",
     accommodationHelp: "yes",
     housingConfirmed: "yes",
@@ -102,5 +103,5 @@ export function randomIntake(
 
 /** Text-only samples cannot be mistaken for scans of real evidence. */
 export function testDocumentPreview(): string {
-  return "TEST DATA — SAMPLE DOCUMENT\n\nFictional household supporting record.\nCreated by Settings → Randomize data.\n\nFor application testing only.\nNot valid evidence or an official record.\n";
+  return "TEST DATA: SAMPLE DOCUMENT\n\nFictional household supporting record.\nCreated by Settings → Randomize data.\n\nFor application testing only.\nNot valid evidence or an official record.\n";
 }

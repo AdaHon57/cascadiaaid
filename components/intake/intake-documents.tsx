@@ -301,7 +301,7 @@ export function IntakeDocuments({
           {selected && (
             <div>
               <label htmlFor="intake-extraction" className="text-sm font-semibold">
-                Document notes or extracted draft — compare with the original
+                Document notes or extracted draft: compare with the original
               </label>
               <textarea
                 id="intake-extraction"

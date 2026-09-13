@@ -3,7 +3,7 @@ import { evaluateIntake } from "@/lib/intake-recovery";
 import type { IntakeRecord } from "@/types/intake";
 export interface MapBadge {
   label: string;
-  tone: "ready" | "waiting" | "blocked" | "complete" | "unknown";
+  tone: "ready" | "waiting" | "blocked" | "complete" | "unknown" | "not-applicable";
   detail: string[];
 }
 export const mapEngineIds: Record<string, string> = {

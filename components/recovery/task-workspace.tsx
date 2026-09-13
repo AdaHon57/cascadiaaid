@@ -1,11 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { cleanDraftText } from "@/lib/draft-text";
 import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@/components/ui/button";
 import { documentTypes } from "@/data/intake-questions";
 import { outcomeDocumentTypes } from "@/data/journey-workflows";
 import { journeySteps } from "@/data/journey-steps";
+import { journeyConnections } from "@/data/journey-connections";
+import { journeyAutomation } from "@/data/journey-automation";
+import { TaskAutomation } from "./task-automation";
+import { organizationForTask } from "@/lib/household-organizations";
 import {
   baseTaskId,
   getJourney,
@@ -62,7 +67,6 @@ export function TaskWorkspace({
   const [reviewing, setReviewing] = useState(false);
   const [outcomeNote, setOutcomeNote] = useState("");
   const [outcomeIds, setOutcomeIds] = useState<string[] | null>(null);
-  const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [preparing, setPreparing] = useState(false);
   const [downloading, setDownloading] = useState(false);
@@ -86,6 +90,8 @@ export function TaskWorkspace({
     evidence.some((doc) => doc.id === id),
   );
   const steps = journeySteps[baseTaskId(definition.id)];
+  const connection = journeyConnections[baseTaskId(definition.id)];
+  const organization = organizationForTask(record, definition.id);
   const siblings = journeyDefinitions(record).filter(
     (d) => baseTaskId(d.id) === baseTaskId(definition.id),
   );
@@ -98,14 +104,13 @@ export function TaskWorkspace({
       : "Unavailable document";
   }
   async function run(fields: Record<string, unknown>, done?: () => void) {
-    setError("");
     setMessage("");
     try {
       await command({ ...fields, taskId: definition.id });
       done?.();
       setMessage("Saved.");
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Could not save this step.");
+    } catch {
+      // Keep edits available for retry without showing an error or a success message.
     }
   }
   async function prepare() {
@@ -118,7 +123,6 @@ export function TaskWorkspace({
   }
   async function download(kind: "packet" | "calendar") {
     setDownloading(true);
-    setError("");
     try {
       const result = await fetch(`/api/intake/${kind}?task=${encodeURIComponent(definition.id)}`, {
         cache: "no-store",
@@ -133,8 +137,8 @@ export function TaskWorkspace({
       a.download = `${baseTaskId(definition.id)}.${kind === "packet" ? "pdf" : "ics"}`;
       a.click();
       window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Download failed.");
+    } catch {
+      // Leave the download available for another attempt.
     } finally {
       setDownloading(false);
     }
@@ -209,6 +213,42 @@ export function TaskWorkspace({
       ) : (
         <ol className="space-y-8" aria-label="Three steps to reach your goal">
           <Step number={1} title={steps[0]}>
+            <p className="font-medium text-slate-900">
+              Organization:{" "}
+              {organization.name ? (
+                organization.sourceUrl ? (
+                  <a
+                    className={link}
+                    href={organization.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {organization.name}
+                  </a>
+                ) : (
+                  organization.name
+                )
+              ) : (
+                "Finding the responsible organization"
+              )}
+            </p>
+            {organization.name ? (
+              <p>{organization.role}</p>
+            ) : (
+              <>
+                <p>{organization.question}</p>
+                <Button
+                  variant="secondary"
+                  disabled={busy}
+                  onClick={() => void run({ kind: "organizations", refresh: true })}
+                >
+                  Find organization
+                </Button>
+                <Link className={link} href="/intake">
+                  Update household details
+                </Link>
+              </>
+            )}
             <p>
               I’ll use your saved answers and reviewed documents to prepare a draft. AI will help
               write it when available.
@@ -261,6 +301,41 @@ export function TaskWorkspace({
             )}
           </Step>
           <Step number={2} title={steps[1]}>
+            {journeyAutomation[baseTaskId(definition.id)]?.mode !== "document" && (
+              <TaskAutomation
+                taskId={definition.id}
+                job={task.automation}
+                busy={busy}
+                disabled={
+                  !record.confirmed || !canAct || item.applicable === null || journey.demo.enabled
+                }
+                command={command}
+              />
+            )}
+            {connection && (
+              <div className="space-y-2">
+                <p>{connection.guidance}</p>
+                <ul className="space-y-2" aria-label="Application and service connections">
+                  {connection.links.map((destination) => (
+                    <li key={destination.href}>
+                      <a
+                        className={link}
+                        href={destination.href}
+                        target={destination.href.startsWith("https:") ? "_blank" : undefined}
+                        rel={
+                          destination.href.startsWith("https:") ? "noopener noreferrer" : undefined
+                        }
+                      >
+                        {destination.label}
+                        {destination.href.startsWith("https:") && (
+                          <span className="sr-only"> (opens in a new tab)</span>
+                        )}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
             {item.blockers.length > 0 && (
               <div className="space-y-2 rounded-lg bg-amber-50 p-3">
                 <p className="font-medium text-amber-900">
@@ -276,14 +351,14 @@ export function TaskWorkspace({
                     >
                       {blocker.title}
                     </button>{" "}
-                    — {blocker.reason}
+                    : {blocker.reason}
                   </p>
                 ))}
               </div>
             )}
             <p>
               {artifact
-                ? "Check the draft, then download it to use for this step. You handle any official submission or appointment."
+                ? "Check the draft. You can download it to use directly with the organization. AI handling uses your confirmed facts and documents."
                 : "Your draft will appear here after preparation."}
             </p>
             {artifact && !reviewing && (
@@ -298,9 +373,13 @@ export function TaskWorkspace({
                   <input
                     className={field}
                     maxLength={200}
-                    value={draft.recipient}
-                    disabled={busy}
-                    onChange={(event) => editPacket({ recipient: event.target.value })}
+                    value={
+                      artifact.receipt || artifact.approvedAt
+                        ? draft.recipient
+                        : organization.name || draft.recipient
+                    }
+                    readOnly
+                    placeholder="Finding the responsible organization"
                   />
                 </label>
                 <label className="block">
@@ -309,7 +388,7 @@ export function TaskWorkspace({
                     className={field}
                     rows={8}
                     maxLength={12000}
-                    value={draft.text}
+                    value={cleanDraftText(draft.text)}
                     disabled={busy}
                     onChange={(event) => editPacket({ text: event.target.value })}
                   />
@@ -373,18 +452,6 @@ export function TaskWorkspace({
                   The PDF includes your draft and selected document images. Sample proof stays
                   labeled as fictional.
                 </p>
-                {journey.demo.enabled && !artifact.receipt && (
-                  <Button
-                    disabled={
-                      busy || !canAct || !!packet || !draft.text.trim() || !draft.recipient.trim()
-                    }
-                    onClick={() =>
-                      void run({ kind: "submit", confirm: true, artifactId: artifact.id })
-                    }
-                  >
-                    Approve this draft &amp; simulate delivery
-                  </Button>
-                )}
               </div>
             )}
             {artifact?.receipt && (
@@ -552,11 +619,6 @@ export function TaskWorkspace({
             )}
           </Step>
         </ol>
-      )}
-      {error && (
-        <p role="alert" className="rounded-lg bg-red-50 p-3 text-red-800">
-          {error}
-        </p>
       )}
       {message && (
         <p role="status" className="text-teal-800">
