@@ -56,7 +56,7 @@ test("homeowner and renter demos reach every applicable end goal without dead en
   for (const scenario of ["owner", "renter"]) {
     let record = demo(scenario);
     if (scenario === "renter")
-      for (const id of ["hazards", "permits", "rebuilding", "tax-relief"])
+      for (const id of ["tax-relief"])
         assert.equal(
           evaluateJourney(record, now).find((r) => r.definition.id === id).status,
           "not-applicable",
@@ -94,28 +94,24 @@ test("submission, approval and partial payment do not establish achieved outcome
     assert.notEqual(journeyBadges(record)["claim-outcome"].tone, "complete");
   }
 });
-test("prerequisites block starting and completion, but permit preparation; skipping never unlocks", () => {
-  let record = demo();
-  assert.throws(() => command(record, "start", "rebuilding"), /prerequisites/);
-  record = command(record, "prepare", "rebuilding");
-  assert.ok(record.journey.tasks.rebuilding.artifact);
-  record = command(record, "skip", "permits");
-  assert.equal(
-    evaluateJourney(record, now).find((r) => r.definition.id === "rebuilding").status,
-    "blocked",
-  );
-  record = achieve(record, "permits");
-  assert.notEqual(
-    evaluateJourney(record, now).find((r) => r.definition.id === "rebuilding").status,
-    "blocked",
-  );
-  record = command(record, "reopen", "permits", {
-    note: "Issued permit was corrected and is no longer valid.",
-  });
-  assert.equal(
-    evaluateJourney(record, now).find((r) => r.definition.id === "rebuilding").status,
-    "blocked",
-  );
+test("Property steps remain available regardless of answers and prerequisites", () => {
+  for (const scenario of ["owner", "renter"]) {
+    let record = demo(scenario);
+    for (const id of ["hazards", "cleanup", "permits", "rebuilding", "safe-property"]) {
+      record.journey.tasks[id] = { notes: "", notApplicable: true };
+      const item = evaluateJourney(record, now).find((r) => r.definition.id === id);
+      assert.equal(item.status, "ready", id);
+      assert.equal(item.applicable, true, id);
+      assert.deepEqual(item.blockers, [], id);
+      record = command(record, "start", id);
+      assert.ok(record.journey.tasks[id].startedAt, id);
+    }
+  }
+});
+test("non-Property prerequisites still block starting", () => {
+  const record = demo();
+  record.journey.tasks.claim = { notes: "" };
+  assert.throws(() => command(record, "start", "claim-outcome"), /prerequisites/);
 });
 test("outcomes require appropriate reviewed evidence; rejection reopens achieved work", () => {
   let record = demo();
@@ -148,7 +144,7 @@ test("outcomes require appropriate reviewed evidence; rejection reopens achieved
     /Invalid document/,
   );
 });
-test("closed without success remains distinct and does not unlock dependents", () => {
+test("closed Property outcomes remain distinct while other Property steps stay available", () => {
   let record = command(demo(), "close", "permits", {
     confirm: true,
     note: "Household chose not to pursue this permit.",
@@ -161,7 +157,7 @@ test("closed without success remains distinct and does not unlock dependents", (
   assert.equal(journeyBadges(record).permits.label, "Closed without goal");
   assert.equal(
     evaluateJourney(record, now).find((r) => r.definition.id === "rebuilding").status,
-    "blocked",
+    "ready",
   );
 });
 test("packet approval binds exact version, prevents duplicates and preserves approval history", () => {

@@ -2,13 +2,13 @@ import { intakeQuestions, activeAnswers } from "@/data/intake-questions";
 import type { IntakeAnswers, IntakeDraft, IntakeDocument } from "@/types/intake";
 
 /** Fictional fixtures only; use the question definitions to keep option values valid. */
-export function randomIntake(
-  now = new Date(),
-  random = Math.random,
-): {
+export function randomIntake(): {
   draft: IntakeDraft;
   documents: IntakeDocument[];
 } {
+  const now = new Date("2026-09-12T12:00:00Z");
+  let seed = 1;
+  const random = () => (seed = (seed * 1664525 + 1013904223) >>> 0) / 4294967296;
   const pick = <T>(values: readonly T[]): T => values[Math.floor(random() * values.length)];
   const date = (days: number) =>
     new Date(now.getTime() + days * 86400000).toISOString().slice(0, 10);
@@ -43,11 +43,11 @@ export function randomIntake(
           : text[question.id] || "Example response (test data)";
     }
   }
-  // Keep the core scenario consistent while varying recovery progress.
+  // Always restore the same homeowner scenario and recovery progress.
   Object.assign(answers, {
     addressKnowledge: "full",
     dateKnowledge: "exact",
-    relationship: pick(["owner", "renter"]),
+    relationship: "owner",
     mainHome: "yes",
     affected: ["home", "belongings"],
     condition: "destroyed",
@@ -67,21 +67,23 @@ export function randomIntake(
     answers.workStarted = "no";
     answers.debrisStatus = "none";
   }
-  const applications = ["Housing support", "Recovery grant", "Household essentials"].map((name) => {
-    const status = pick(["submitted", "information", "approved", "received", "appealing"]);
-    const outstanding = ["information", "appealing"].includes(status) ? "yes" : "no";
-    return {
-      id: crypto.randomUUID(),
-      organization: `Example ${name} (test data)`,
-      status,
-      outstanding,
-      action: outstanding === "yes" ? "Send supporting records (test data)" : "",
-      deadline: outstanding === "yes" ? date(7 + Math.floor(random() * 30)) : "",
-    };
-  });
+  const applications = ["Housing support", "Recovery grant", "Household essentials"].map(
+    (name, index) => {
+      const status = pick(["submitted", "information", "approved", "received", "appealing"]);
+      const outstanding = ["information", "appealing"].includes(status) ? "yes" : "no";
+      return {
+        id: `00000000-0000-4000-8000-${String(index + 1).padStart(12, "0")}`,
+        organization: `Example ${name} (test data)`,
+        status,
+        outstanding,
+        action: outstanding === "yes" ? "Send supporting records (test data)" : "",
+        deadline: outstanding === "yes" ? date(7 + Math.floor(random() * 30)) : "",
+      };
+    },
+  );
   const documents = ["utility-bill", "insurance-policy", "claim-receipt"].map(
-    (type): IntakeDocument => ({
-      id: crypto.randomUUID(),
+    (type, index): IntakeDocument => ({
+      id: `00000000-0000-4000-9000-${String(index + 1).padStart(12, "0")}`,
       type,
       uploadedAt: now.toISOString(),
       confirmedAt: now.toISOString(),

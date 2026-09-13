@@ -97,8 +97,8 @@ export function ProfileMenu() {
               {randomizing ? "Randomizing…" : "Randomize data"}
             </button>
             <p id="randomize-description" className="mt-1 text-xs leading-5 text-slate-500">
-              For testing: replaces saved answers and applications, fills all 3 stages with sample
-              data, and updates your recovery map. Existing uploads are kept.
+              For testing: loads the same sample household every time, fills all 3 stages, and
+              resets recovery progress. Existing uploads are kept.
             </p>
             {randomizing && (
               <p role="status" className="mt-2 text-xs">

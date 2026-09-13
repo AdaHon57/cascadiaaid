@@ -16,6 +16,8 @@ import type { PriorityFactors } from "@/types/priority";
 import type { MapBadge } from "@/lib/intake-map";
 import { organizationForTask } from "@/lib/household-organizations";
 
+const propertyTasks = new Set(["hazards", "cleanup", "permits", "rebuilding", "safe-property"]);
+
 const programStages = ["application", "review", "appeal", "funds"];
 export const baseTaskId = (id: string) => id.split(":")[0];
 export function journeyDefinitions(record: IntakeRecord): JourneyDefinition[] {
@@ -193,9 +195,13 @@ export function evaluateJourney(record: IntakeRecord, now = new Date()): Evaluat
   const statuses = new Map<string, JourneyStatus>();
   const resolving = new Set<string>();
   const applicable = (def: JourneyDefinition) =>
-    journey.tasks[def.id]?.notApplicable ? false : applies(def, record, journey);
+    propertyTasks.has(def.id)
+      ? true
+      : journey.tasks[def.id]?.notApplicable
+        ? false
+        : applies(def, record, journey);
   const relevantPrerequisites = (def: JourneyDefinition) =>
-    def.prerequisites.filter((p) => !p.when || a[p.when] !== "no");
+    propertyTasks.has(def.id) ? [] : def.prerequisites.filter((p) => !p.when || a[p.when] !== "no");
   const satisfied = (p: JourneyDefinition["prerequisites"][number]) => {
     const def = defs.find((d) => d.id === p.id);
     if (!def || applicable(def) === false) return true;

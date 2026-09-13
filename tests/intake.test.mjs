@@ -715,6 +715,8 @@ test("randomize persists all stages, preserves uploads and isolates households",
   assert.equal((await run(one.record.revision)).status, 409);
   const again = await (await run(saved.revision)).json();
   assert.equal(again.documents.length, 4);
+  assert.deepEqual(again.draft, saved.draft);
+  assert.deepEqual(again.documents, saved.documents);
   const reloaded = await (
     await handleIntakeRequest(request("/api/intake", "GET", one.cookie), env)
   ).json();
